@@ -1,0 +1,77 @@
+hello
+silence:silence=0.1
+packet_error:packet error
+no_signal:no signal
+mode
+verbose
+terse
+goodbye
+battery_level:battery level
+battery_voltage:battery voltage
+out_of_7:out of 7
+dmm_low_batt:multimeter battery is low
+talker_low_batt:talking module battery is low
+zero
+one
+two
+three
+four
+five
+six
+seven
+eight
+nine
+ten
+eleven
+twelve
+thirteen
+fourteen
+fifteen
+sixteen
+seventeen
+eighteen
+nineteen
+twenty
+thirty
+fourty
+fifty
+sixty
+seventy
+eighty
+ninety
+hundred
+thousand
+point
+minus
+nano
+micro
+milli
+kilo
+mega
+volts
+amperes
+ohms
+farads
+hertz
+percent
+unknown
+voltage
+current
+resistance
+continuity
+diode
+frequency
+capacitance
+duty_cycle:duty cycle
+pmax
+pmin
+dc
+ac
+autorange:auto range
+relative
+hold
+max
+min
+overlimit
+underlimit
+off

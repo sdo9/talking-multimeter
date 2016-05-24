@@ -1,0 +1,196 @@
+Talking multimeter
+(second incarnation)
+Copyright 2014-2016 by Stéphane Doyon <steph@electrons.space>
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+I made a talking module for a UT61E multimeter. These multimeters have
+an IR output meant for logging to a computer; instead I made a module
+that speaks out the multimeter's setting and measurements, so it can
+be used by a blind person.
+
+Arduino SoftwareSerial is used to receive the serial signal from the
+multimeter through an IR diode. The Cyrustek ES519XX protocol is then
+decoded. Speech is produced by playing back pre-generated sound clips,
+read from an SPI flash chip (one of the few in DIP through-hole form
+factor). AVR PWM register twiddling is used for sound output.
+
+Here is the code I used and circuit specs.
+
+The exact multimeter model I used:
+RioRand UT61E AC/DC Modern Digital Auto Ranging Multimeters  Multitester True RMS
+https://www.amazon.ca/gp/product/B007THZMWI
+
+Brief history
+=============
+
+In 2014-2015 we made an earlier version of this project, using an
+Arduino Uno R3 and an Adafruit Wave Shield Kit. We used a voltage
+booster to run it at 5V from 3 batteries. The second version
+documented here is made with a bare ATMEGA328P running at 3.3V, rather
+than an Arduino. It produces the audio directly (with its PWM
+function), reading from a flash chip. The sound level however is too
+low in practice and an amplifier was needed, I resorted to a pre-made
+breakout board for that.
+
+This circuit is quite a bit more complicated than using the Wave
+shield. The audio quality out of an ATMEGA328P also isn't all that
+good: it's perfectly sufficient for the purpose but there's definitely
+a bit of a hiss. The main point of this redesign for me was to make
+the talking module an always on device: it consumes less than 10uA in
+sleep mode, and wakes up as soon as it perceives an IR signal from the
+multimeter. This way I don't have to turn the talking module on or
+off, which I like a lot. We also came up with a sturdier and less
+clunky physical setup where the multimeter won't become misaligned and
+made it so I can actually pick it up in one hand and bring it where I
+need it.
+
+Contents
+========
+
+This directory contains:
+
+circuit-spec.txt: detailed explanation of the circuit used.
+
+makeit: quick&dirty build script / Cheet sheet of how to build this
+with ino.
+
+words-flash-writer/ : program to generate sound data, Arduino sketch and
+python client utility to upload sound data to the flash chip through
+the ATMEGA.
+
+patches/ : modifications to existing software that I made and that this
+project relies on.
+
+dmm-talking-arduino-sketch: arduino code for the talking module.
+
+Code Inspiration
+================
+
+My Cyrustek ES519XX protocol parsing code was derived from a few
+existing projects, many thanks to those folks:
+-libsigrok project: git://sigrok.org/libsigrok
+-dmm_es51922.py: https://bitbucket.org/kuzavas/dmm_es51922.git
+-dmmut61e utility by Steffen Vogel.
+
+The code for audio using AVR PWM was cobbled from a couple code
+examples found on the net (one for AtTiny85 as I recall) but I've lost
+the references.
+
+Thanks to Adafruit for the code to access the flash chip.
+
+Software Dependencies
+=====================
+
+Python is required for the program that generates sound files and the
+one that uploads them to be written into the flash. The latter also
+requires pyserial.
+
+For speech generation, I use espeak, you'll want to install that package.
+I'm used to it and consider it very intelligible even in noisy environments.
+It is however far from natural sounding, and may sound strange the first
+time you hear it.
+Sound data generation also relies on sox, the audio processing tool,
+install that too.
+
+I built this using the Arduino development tools version 1.0.5. It's
+not the latest, but it's sufficient for my purposes and was default on
+Ubuntu 14.04. No reason it wouldn't work on later versions, but not
+tested.
+
+The avrdude tool is used to prepare the ATMEGA328P chip, but that
+should come as a dependency of the Arduino tools.
+
+Personally, I absolutely want a command-line interface to my development
+tools. I used "ino":
+pip install ino
+I recommend installing the picocom package which ino's "serial" function uses.
+The board model you want when using ino with a bare ATMEGA328P at 8MHz
+is -m pro328.
+
+Small driver for the Winbond 25Q80BV or MX25L4006EPI-12G flash chips:
+Used by both the flash writer sketch and DMM talking module sketch.
+We use Adafruit's TinyFlash library,
+https://github.com/adafruit/Adafruit_TinyFlash
+Apply my patch: patches/tiny-flash.diff:
+-Adds support for the 512KiB version of the flash chip.
+-Adds the POWERDOWN and RELEASEPOWERDOWN commands.
+TODO: I need to send those up to Adafruit.
+Copy the resulting folder into the library folder of your arduino development
+environment.
+
+Bare ATMEGA328P Preparation
+===========================
+
+When starting from a brand new ATMEGA328P chip, or if reusing one from
+an Arduino Uno R3, the fuses must be reprogrammed. You need an AVR
+programmer to do this. I used Adafruit's USBtinyISP.
+
+-Set it to run at 8MHz using the internal oscillator, so turn off "div8".
+-Set brown out detector (BOD) to 1.8V.
+
+avrdude -c usbtiny -p atmega328p \
+  -U lfuse:w:0xe2:m -U hfuse:w:0xDA:m -U efuse:w:06:m
+
+I find it convenient for development to install a bootloader, that way
+I can upload a new sketch from the FTDI header I incorporated into my
+circuit.
+cd /usr/share/arduino/hardware/arduino/bootloaders
+avrdude -c usbtiny -p atmega328p \
+  -U flash:w:./atmega/ATmegaBOOT_168_atmega328_pro_8MHz.hex:i
+
+Generating Sound Data
+=====================
+
+Under words-flash-writer/ you'll find:
+
+-list: List of words to synthesize.
+One word per line.
+The first thing is the key as used in the code.
+Optionally, it may be followed by a colon and then the colon is the text
+to feed to the text-to-speech engine.
+If not specified then the same text as the key is used.
+One special value is also recognized: silence=0.1 for a silence of the
+given duration.
+
+The make.py script reads in this list and outputs two files:
+-words_def.h: include file, with #defines for each word key indicating the
+word's code (index number).
+This file is to be copied to the DMM talking module sketch directory.
+-snd.data: a data file to be uploaded onto the flash chip.
+The data file contains a table indexed by word number and giving the address
+of each word's sound data, followed by sound data for all words.
+
+Compile flash-writer-arduino-sketch and upload onto the ATMEGA.
+Run sender.py: it transmits snd.data to the ATMEGA, which in turn writes it
+to the flash chip.
+TODO: write verification.
+
+DMM Talking Module Sketch
+=========================
+
+The DMM talking module sketch relies on a modification to the
+SoftwareSerial module. Normally, that module installs an interrupt
+handling for all of the pin change interrupts, It doesn't know which
+pin the module will be configured for, so it installs handlers for all
+possible pin change interrupts. I wanted to use a pin change interrupt
+for my button, and I didn't want SoftwareSerial to have to run my
+handler for every bit it receives. I picked pin 2 for the IR diode and
+pin 8 for the button, so the IR diode ends up serviced by PCINT2_vect,
+and the button is serviced by PCINT0_vect.
+
+So copy the SoftwareSerial code from the arduino development tools,
+for me it's
+/usr/share/arduino/libraries/SoftwareSerial/SoftwareSerial.cpp,
+directly to your sketch directory for the DMM talking module.
+Then apply my patches/SoftwareSerial.diff.
+-It crudely disables pin change interrupt vectors other than PCINT2_vect.
+-It also avoids configuring the TX pin as OUTPUT, since we don't do any
+ transmitting and we want to keep consumption to a minimum.
+
+You also need the words_def.h file from the previous step.
+
+Compile and upload to the ATMEGA.

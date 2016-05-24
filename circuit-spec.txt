@@ -1,0 +1,154 @@
+Talking digital multimeter circuit - second incarnation
+
+Copyright 2014-2016 by Stéphane Doyon <steph@electrons.space>
+Feel free to use/modify.
+
+Here are exactly all the parts and connections I used.
+Listed part numbers are from Digikey.
+
+Components and overall sections:
+-Battery holder: 3x AA.
+  Tried a PCB mount model (BC3AAPC-ND) but was too stiff.
+  Ended up using a SBH331AS-ND, has cover and switch, although switch is
+  unreachable in my final assembly, a bit big though.
+-Battery polarity protection: around an IPP80P03P4L-04-ND mosfet, TO220-3.
+-Battery voltage measurement section: a resistor ladder.
+-Voltage regulation: around an MCP1700-3302E/TO-ND, TO92-3 (3.3V).
+-Microcontroller: ATmega328P 28-DIP IN A SOCKET.
+-Infrared input: around a 475-1075-ND IR photo diode.
+  I had it projecting up from the board, through the case top, to end up right
+  under the multimeter's emitter.
+-Flash: Winbond 25Q80BV or MX25L4006EPI-12G 1092-1094-ND 8-DIP IN A SOCKET.
+-Audio amplifier breakout: BOB-11044 (Sparkfun).
+  https://www.sparkfun.com/products/11044
+  Possibly available at Digikey even.
+  http://www.spikenzielabs.com/Catalog/index.php?main_page=product_info&products_id=1278
+  http://www.robotshop.com/ca/en/mono-audio-amplifier-tpa2005d1.html
+-Amplifier power control: around a ZXM64P035L3-ND mosfet, TO-220-3.
+  Note this specific model was discontinued since.
+  This is because the amplifier breakout's sleep mode isn't good enough.
+-Button: I think the one I used was Tactile Switch Button 12mm square
+  http://www.adafruit.com/product/1119
+-Speaker: Speaker - PCB Mount - COM-11089 (sparkfun)
+  It's cheesy, but all my other 8ohm reasonably sized speakers are worse.
+  I think this one does better because it's enclosed.
+  My larger 4ohm speakers draw too much and the amp isn't rated for them.
+-FTDI header: 6 pin header male.
+  For reprogramming or communication. Possibly optional.
+
+I used sockets for the DIPs.
+
+I have no provisions for an on/off switch :-).
+
+Battery polarity protection:
+Battery holder - to IPP80P03P4L-04-ND mosfet gate.
+Battery + to mosfet drain.
+Battery - to GND rail.
+
+Battery voltage measurement:
+5 resistors in series, call them R1-R5, each 1Mohm,
+forming a 5x voltage divider.
+(1Mohm is the highest value I own...)
+R1 to GND, R5 to IPP80P03P4L-04-ND mosfet source.
+R1-R2 junction to mcu pin 23 (arduino analog 0).
+
+Voltage regulation:
+MCP1700-3302E/TO-ND regulator pin 1 to GND.
+IPP80P03P4L-04-ND mosfet source to regulator pin 2 (Vin).
+Regulator pin 3 (Vout) to VCC rail.
+Ceramic cap 1uf on pins 1,2,
+Ceramic cap 1uf on pins 1,3,
+220uf cap between VCC and GND rails.
+
+Microcontroller (ATmega328P):
+VCC to mcu pin 7,
+GND to mcu pin 8,
+47uf cap and .1uf ceramic cap between mcu pins 7,8,
+VCC to mcu pin 20 (AVCC)
+GND to mcu pin 22 (AGND)
+.1uf cap between mcu pins 20,22,
+(there should be an inductor too but I've never used one.)
+10K pull-up resistor from VCC to mcu pin 1 (reset).
+
+Infrared input (475-1075-ND photo diode):
+Reverse biased...
+VCC to IR diode cathode,
+100Kohm resistor from IR diode anode to GND,
+IR diode anode to mcu pin 4 (arduino 2).
+
+Flash:
+VCC to flash pin 8,
+Flash pin 4 to GND,
+.1uf ceramic cap between flash pin 8 and GND.
+VCC to flash pin 3 (WP),
+VCC to flash pin 7 (hold),
+Mcu pin 13 (arduino 7) to flash pin 1 (CS).
+Mcu pin 18 (arduino 12 MISO) to flash pin 2 (DO),
+Mcu pin 17 (arduino 11 MOSI) to flash pin 5 (DI),
+Mcu pin 19 (arduino 13 SCK) to flash pin 6 (CLK).
+
+Amplifier power control:
+VCC to ZXM64P035L3-ND mosfet source,
+10K resistor between mosfet gate and source,
+Mcu pin 12 (arduino 6) to mosfet gate.
+
+Audio amplifier breakout:
+ZXM64P035L3-ND mosfet drain to breakout PWR,
+Breakout GND to GND rail,
+Mcu pin 6 (arduino 4) to breakout SDN (shutdown),
+Mcu pin 15 (arduino 9) to breakout in+ (audio in),
+breakout in- NC (yeah that's weird but there's less noise),
+breakout out+/out- to speaker.
+Volume pot connection NC. It's not so loud that you really want to turn it down.
+We could increase the amplification (adding resistors to the breakout)
+and add a volume pot, but then it'd consume more current.
+
+Button:
+One terminal of the button goes to GND,
+the other to mcu pin 14 (arduino 8).
+Note: can't switch this mcu pin unless making sure it's on a different
+pin change interrupt than IR diode.
+
+FTDI header:
+6-pin header, call them pins 1-6.
+Polarity: if closest board edge is up, then pins 1-6 are left-to-right.
+Note: must disconnect batteries when connecting FTDI cable,
+or don't connect the FTDI's 5V.
+Header pin 1 to GND rail.
+Header pin 2 NC.
+Header pin 3 to IPP80P03P4L-04-ND mosfet drain (5V power),
+Header pin 4 to mcu pin 2 (arduino 0 RX)
+Header pin 5 to mcu pin 3 (arduino 1 TX),
+Header pin 6 to a .1uf ceramic cap, its other leg to mcu pin 1 (reset).
+
+Physical arrangement:
+
+Thanks to my wife for incredible patience soldering and helping with
+the physical construction.
+
+We made the above circuit on an Adafruit Perma-Proto Full-sized
+Breadboard
+
+I have the batteries and board with all the above inside a box. The
+multimeter is fixed to the box's cover. There's a hole through the
+cover so the IR diode sticks out and ends up right under the
+multimeter's emitter.
+
+Keep in mind that both the talker module and the multimeter's
+batteries will eventually need changing, so access must be possible.
+
+I fixed the multimeter with a tie wrap across the holes of its foot
+rest, and a custom made piece that holds the front part where the IR
+serial connector would normally go. It holds the multimeter's weight
+well enough for me. I have a hole through the cover to reach the
+multimeter's battery compartment screw, and removing that loosens it
+enough so the multimeter can be removed.
+If I were doing this again, I'd try harder to modify either the serial
+or USB logging cables.
+
+I have the speaker and the button on a secondary board, set vertically
+against the front side, with holes through the case so they show
+through.
+The purpose of the button is to toggle between terse and verbose mode
+when the multimeter is active, otherwise it causes the battery level
+to be announced.

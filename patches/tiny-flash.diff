@@ -1,0 +1,103 @@
+diff -urN Adafruit_TinyFlash.orig/Adafruit_TinyFlash.cpp Adafruit_TinyFlash/Adafruit_TinyFlash.cpp
+--- Adafruit_TinyFlash.orig/Adafruit_TinyFlash.cpp	2016-05-16 21:30:49.078638733 -0400
++++ Adafruit_TinyFlash/Adafruit_TinyFlash.cpp	2016-05-16 21:34:29.540475494 -0400
+@@ -20,12 +20,15 @@
+ #define CMD_SECTORERASE  0x20
+ #define CMD_CHIPERASE    0x60
+ #define CMD_ID           0x90
++#define CMD_POWERDOWN        0xB9
++#define CMD_RELEASEPOWERDOWN 0xAB
+ 
+ #define STAT_BUSY        0x01
+ #define STAT_WRTEN       0x02
+ 
+ // Currently rigged for W25Q80BV only
+-#define CHIP_BYTES       1L * 1024L * 1024L
++#define CHIP_BYTES1       1L * 1024L * 1024L
++#define CHIP_BYTES2       512L * 1024L
+ 
+ #ifdef __AVR_ATtiny85__
+ 
+@@ -92,7 +95,16 @@
+ 	CHIP_DESELECT
+ 
+ 	// Chip capacity is hardcoded for now
+-	return ((manID == 0xEF) && (devID == 0x13)) ? CHIP_BYTES : 0L;
++  Serial.print(F("manID ")); Serial.print(manID, HEX);
++  Serial.print(F(" devID ")); Serial.println(devID, HEX);
++	if (manID == 0xEF && devID == 0x13) {
++    capacity = CHIP_BYTES1;
++	} else if (manID == 0xC2 && devID == 0x12) {
++    capacity = CHIP_BYTES2;
++  } else {
++    capacity = 0;
++  }
++  return capacity;
+ }
+ 
+ // Poll status register until busy flag is clear or timeout occurs
+@@ -113,7 +125,7 @@
+ // Set up a read operation (no data is returned yet)
+ boolean Adafruit_TinyFlash::beginRead(uint32_t addr) {
+ 
+-	if((addr >= CHIP_BYTES) || !waitForReady()) return false;
++	if((addr >= capacity) || !waitForReady()) return false;
+ 
+ 	cmd(CMD_READDATA);
+ 	(void)spi_xfer(addr >> 16);
+@@ -134,6 +146,24 @@
+ 	CHIP_DESELECT
+ }
+ 
++// Enter power down mode, reduces current draw, only release power down
++// instruction will be recognized afterwards.
++boolean Adafruit_TinyFlash::powerDown(void) {
++	if(!waitForReady()) return false;
++	cmd(CMD_POWERDOWN);
++	CHIP_DESELECT
++  delayMicroseconds(5);
++	return true;
++}
++
++// Exit power down mode.
++boolean Adafruit_TinyFlash::releasePowerDown(void) {
++	cmd(CMD_RELEASEPOWERDOWN);
++	CHIP_DESELECT
++  delayMicroseconds(5);
++	return waitForReady();
++}
++
+ // Erase the whole chip.  Boom, gone.  Use with caution.
+ boolean Adafruit_TinyFlash::eraseChip(void) {
+ 
+@@ -193,7 +223,7 @@
+ // no other options.  This is the ONLY write method provided by the library;
+ // other capabilities (if needed) may be implemented in client code.
+ boolean Adafruit_TinyFlash::writePage(uint32_t addr, uint8_t *data) {
+-	if((addr >= CHIP_BYTES) || !waitForReady() || !writeEnable())
++	if((addr >= capacity) || !waitForReady() || !writeEnable())
+ 		return false;
+ 
+ 	cmd(CMD_PAGEPROG);
+diff -urN Adafruit_TinyFlash.orig/Adafruit_TinyFlash.h Adafruit_TinyFlash/Adafruit_TinyFlash.h
+--- Adafruit_TinyFlash.orig/Adafruit_TinyFlash.h	2016-05-16 21:30:49.078638733 -0400
++++ Adafruit_TinyFlash/Adafruit_TinyFlash.h	2016-05-16 21:34:29.544475383 -0400
+@@ -14,7 +14,9 @@
+   boolean           beginRead(uint32_t addr),
+                     writePage(uint32_t addr, uint8_t *data),
+                     eraseChip(void),
+-                    eraseSector(uint32_t addr);
++                    eraseSector(uint32_t addr),
++                    powerDown(void),
++                    releasePowerDown(void);
+   uint8_t           readNextByte(void);
+   void              endRead(void);
+  private:
+@@ -26,6 +28,7 @@
+   volatile uint8_t *cs_port;
+ #endif
+   uint8_t           cs_mask;
++  uint32_t capacity;
+ };
+ 
+ #endif // _TINYFLASH_H_
