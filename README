@@ -96,20 +96,18 @@ time you hear it.
 Sound data generation also relies on sox, the audio processing tool,
 install that too.
 
-I built this using the Arduino development tools version 1.0.5. It's
-not the latest, but it's sufficient for my purposes and was default on
-Ubuntu 14.04. No reason it wouldn't work on later versions, but not
-tested.
+I initially built this on the older arduino development tools version
+1.0.5, but now tested on Arduino 1.6.9.
 
 The avrdude tool is used to prepare the ATMEGA328P chip, but that
 should come as a dependency of the Arduino tools.
 
 Personally, I absolutely want a command-line interface to my development
-tools. I used "ino":
-pip install ino
-I recommend installing the picocom package which ino's "serial" function uses.
-The board model you want when using ino with a bare ATMEGA328P at 8MHz
-is -m pro328.
+tools. I used to use "ino", now continued as Arturo (command called "ano"):
+https://github.com/scottdarch/Arturo
+I recommend installing the picocom package which its "serial" function uses.
+The board model and cpu setting you want when using ano with a bare
+ATMEGA328P at 8MHz is: -m pro --cpu 8MHzatmega328.
 
 Small driver for the Winbond 25Q80BV or MX25L4006EPI-12G flash chips:
 Used by both the flash writer sketch and DMM talking module sketch.
@@ -184,7 +182,7 @@ and the button is serviced by PCINT0_vect.
 
 So copy the SoftwareSerial code from the arduino development tools,
 for me it's
-/usr/share/arduino/libraries/SoftwareSerial/SoftwareSerial.cpp,
+/usr/share/arduino/hardware/arduino/avr/libraries/SoftwareSerial/src/SoftwareSerial.cpp
 directly to your sketch directory for the DMM talking module.
 Then apply my patches/SoftwareSerial.diff.
 -It crudely disables pin change interrupt vectors other than PCINT2_vect.

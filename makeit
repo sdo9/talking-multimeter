@@ -1,7 +1,7 @@
 #!/bin/bash
-# Cheet sheet of how to build with ino.
+# Cheet sheet of how to build with ano.
 
-# pip install ino
+# pip install ano
 # apt-get install arduino-core picocom espeak python-serial
 
 set -e
@@ -18,30 +18,30 @@ patch -p0 <../patches/tiny-flash.diff
 # Speech generation utility and flash uploader:
 mkdir words-flash-writer
 pushd words-flash-writer
-ino init
+ano init
 cp -a ../../words-flash-writer/* .
 mv -f flash-writer-arduino-sketch/* src/
 rmdir flash-writer-arduino-sketch
 cp -a ../Adafruit_TinyFlash lib/
-ino build -m pro328
+ano build -m pro --cpu 8MHzatmega328
 ./make.py
 popd
 
 # Main DMM talking module:
 mkdir dmm-talking-arduino-sketch
 pushd dmm-talking-arduino-sketch
-ino init
+ano init
 cp -f ../../dmm-talking-arduino-sketch/* src/
 cp ../words-flash-writer/words_def.h src/
 cp -a ../Adafruit_TinyFlash lib/
-cp /usr/share/arduino/libraries/SoftwareSerial/SoftwareSerial.cpp src/
+cp /usr/share/arduino/hardware/arduino/avr/libraries/SoftwareSerial/src/SoftwareSerial.cpp src/
 patch -p0 <../../patches/SoftwareSerial.diff
-ino build -m pro328
+ano build -m pro --cpu 8MHzatmega328
 popd
 echo OK
 
-# Upload a sketch with ino upload -m pro328
-# Watch serial output with ino serial -b 115200
+# Upload a sketch with ano upload -m pro --cpu 8MHzatmega328
+# Watch serial output with ano serial -b 115200
 
 # To modify the word list, add to "list", run make.py. Copy words_def.h
 # to dmm-talking-arduino-sketch/src/.
