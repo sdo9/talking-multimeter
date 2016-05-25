@@ -34,7 +34,10 @@ ano init
 cp -f ../../dmm-talking-arduino-sketch/* src/
 cp ../words-flash-writer/words_def.h src/
 cp -a ../Adafruit_TinyFlash lib/
-cp /usr/share/arduino/hardware/arduino/avr/libraries/SoftwareSerial/src/SoftwareSerial.cpp src/
+# Get SoftwareSerial.cpp from arduino development tools.
+# It's either directly there or under src/.
+F="$(find /usr/share/arduino/hardware/arduino/avr/libraries/SoftwareSerial -name SoftwareSerial.cpp -print)"
+cp "$F" src/
 patch -p0 <../../patches/SoftwareSerial.diff
 ano build -m pro --cpu 8MHzatmega328
 popd
