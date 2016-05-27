@@ -88,9 +88,7 @@ int *playing_utterances = new_utterbuf->utterances;
 unsigned long finished_talking;
 
 boolean isPlaying;
-// Counts sound samples as they are played so we can tell when the current clip is done.
-volatile unsigned playPos;
-// Number of sound samples in current clip.
+// Number of sound samples left in current clip.
 volatile unsigned playLen;
 
 struct ButtonState {
@@ -223,7 +221,7 @@ void play(int utt) {
     return;
   }
   if (isPlaying) {
-    playPos = playLen;  // Interrupting: have the ISR stop looking at the flash.
+    playLen = 0;  // Interrupting: have the ISR stop looking at the flash.
     flash.endRead();
   }
   // utterance numbers are 1 based, but the 3-byte magic number counts as slot 0.
@@ -252,7 +250,6 @@ void play(int utt) {
 
   digitalWrite(AMP_ENABLE_PIN, HIGH);
   noInterrupts();
-  playPos = 0;
   playLen = len;
 
   ICR1 = PWM_SCALE;
@@ -275,9 +272,9 @@ void stopPlay() {
 ISR(TIMER1_OVF_vect) {
 
   uint8_t sample;
-  if (playPos < playLen) {
+  if (playLen) {
+    playLen--;
     sample = flash.readNextByte();
-    ++playPos;
   } else {
     sample = 128;
   }
@@ -285,7 +282,7 @@ ISR(TIMER1_OVF_vect) {
 }
 
 void playLoop() {
-  if (isPlaying && playPos >= playLen) {
+  if (isPlaying && !playLen) {
     if (*playing_utterances) {
       ++playing_utterances;
     }
