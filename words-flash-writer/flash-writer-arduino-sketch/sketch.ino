@@ -7,9 +7,6 @@
  * (at your option) any later version.
  *
  * Winbond SPI flash loader. Simplistic.
- *
- * TODO: Sometimes the writing appears to proceed fine but the chip does not
- * initially get erased. Dunno why. Should verify after write.
  */
 
 #define FLASH_CS_PIN 7
@@ -84,6 +81,14 @@ void loop()
   if(!flash.writePage(address, buf+3)) {
     error("write");
   }
+
+  flash.beginRead(address);
+  for (int i = 0; i<256; i++) {
+    if (buf[3+i] != flash.readNextByte()) {
+      error("verif");
+    }
+  }
+
   Serial.print(F("OK "));
   Serial.println(address);
 }

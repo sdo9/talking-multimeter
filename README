@@ -165,7 +165,6 @@ of each word's sound data, followed by sound data for all words.
 Compile flash-writer-arduino-sketch and upload onto the ATMEGA.
 Run sender.py: it transmits snd.data to the ATMEGA, which in turn writes it
 to the flash chip.
-TODO: write verification.
 
 DMM Talking Module Sketch
 =========================
