@@ -92,7 +92,6 @@ boolean isPlaying;
 volatile unsigned playPos;
 // Number of sound samples in current clip.
 volatile unsigned playLen;
-char volMod=0;
 
 struct ButtonState {
   int8_t pin;
@@ -213,6 +212,10 @@ void waitForSpeech()
   }
 }
 
+#define CLOCK_RATE 8000000
+#define SAMPLING_RATE 16000
+#define PWM_SCALE (CLOCK_RATE / SAMPLING_RATE)
+
 void play(int utt) {
   //Serial.print(F("play: ")); Serial.println(utt);
   if (utt <= 0 || utt >= WORDS_LEN) {
@@ -251,10 +254,8 @@ void play(int utt) {
   noInterrupts();
   playPos = 0;
   playLen = len;
-//#define SAMPLING_RATE 8000
-#define SAMPLING_RATE 16000
-  unsigned int resolution = 8000000/2/SAMPLING_RATE;
-  ICR1 = resolution;
+
+  ICR1 = PWM_SCALE;
   TCCR1A = _BV(WGM11) | _BV(COM1A1); //WGM11,12,13 all set to 1 = fast PWM/w ICR TOP
   TCCR1B = _BV(WGM13) | _BV(WGM12) | _BV(CS10);
   TIMSK1 = _BV(TOIE1);
@@ -272,21 +273,15 @@ void stopPlay() {
 }
 
 ISR(TIMER1_OVF_vect) {
-  static boolean one_in_two;
-  one_in_two = !one_in_two; if(one_in_two) return;
 
-  byte sample;
+  uint8_t sample;
   if (playPos < playLen) {
     sample = flash.readNextByte();
     ++playPos;
   } else {
     sample = 128;
   }
-  if(volMod < 0) {
-    OCR1A = sample >> (volMod*-1);
-  } else {
-    OCR1A = sample << volMod;
-  }
+  OCR1A = ((uint32_t)sample * PWM_SCALE) >> 8;
 }
 
 void playLoop() {
