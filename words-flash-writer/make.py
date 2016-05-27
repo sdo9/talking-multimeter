@@ -45,6 +45,7 @@ def main():
         text])
     subprocess.call([
       'sox',
+      '-D',
       'out.wav',
       '-r', SAMPLING_RATE,
       '-e', 'unsigned-integer',
