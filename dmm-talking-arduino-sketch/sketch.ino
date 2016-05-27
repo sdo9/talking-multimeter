@@ -90,6 +90,8 @@ unsigned long finished_talking;
 boolean isPlaying;
 // Number of sound samples left in current clip.
 volatile unsigned playLen;
+// Prefetched audio sample
+uint8_t nextSample;
 
 struct ButtonState {
   int8_t pin;
@@ -246,6 +248,11 @@ void play(int utt) {
   //Serial.print(addr); Serial.print(F(" ")); Serial.println(len);
   flash.beginRead(addr);
 
+  if (len) {
+    len--;
+    nextSample = flash.readNextByte();
+  }
+
   isPlaying = 1;
 
   digitalWrite(AMP_ENABLE_PIN, HIGH);
@@ -271,14 +278,14 @@ void stopPlay() {
 
 ISR(TIMER1_OVF_vect) {
 
-  uint8_t sample;
+  OCR1A = ((uint32_t)nextSample * PWM_SCALE) >> 8;
+
   if (playLen) {
     playLen--;
-    sample = flash.readNextByte();
+    nextSample = flash.readNextByte();
   } else {
-    sample = 128;
+    nextSample = 128;
   }
-  OCR1A = ((uint32_t)sample * PWM_SCALE) >> 8;
 }
 
 void playLoop() {
