@@ -213,7 +213,6 @@ void waitForSpeech()
 }
 
 #define CLOCK_RATE 8000000
-#define SAMPLING_RATE 16000
 #define PWM_SCALE (CLOCK_RATE / SAMPLING_RATE)
 
 void play(int utt) {
