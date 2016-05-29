@@ -40,6 +40,7 @@ Adafruit_TinyFlash flash(FLASH_CS_PIN);
 #include "es519xx.h"
 
 #include "talking.h"
+#include "adpcm.h"
 
 // This used to matter a lot in an earlier version that managed lots of
 // strings for filenames on a Wave shield; not so much anymore.
@@ -91,7 +92,9 @@ boolean isPlaying;
 // Number of sound samples left in current clip.
 volatile unsigned playLen;
 // Prefetched audio sample
-uint8_t nextSample;
+uint16_t nextSample;
+// Next ADPCM nibble: zero if already consumed */
+uint8_t nextNibble;
 
 struct ButtonState {
   int8_t pin;
@@ -246,7 +249,12 @@ void play(int utt) {
   unsigned len = end_addr - addr;
   //Serial.print(addr); Serial.print(F(" ")); Serial.println(len);
   flash.beginRead(addr);
-  nextSample = flash.readNextByte();
+  ADPCM_init();
+  nextNibble = flash.readNextByte();
+  /* first (top) nibble */
+  nextSample = ADPCM_decode(nextNibble >> 4);
+  /* we consumed top nibble, make sure nextNibble is non zero */
+  nextNibble |= 0x80;
 
   isPlaying = 1;
 
@@ -273,12 +281,22 @@ void stopPlay() {
 
 ISR(TIMER1_OVF_vect) {
 
-  OCR1A = ((uint32_t)nextSample * PWM_SCALE) >> 8;
+  OCR1A = ((uint32_t)nextSample * PWM_SCALE) >> 16;
 
-  if (playLen && --playLen) {
-    nextSample = flash.readNextByte();
+  if (playLen) {
+    if (nextNibble) {
+      /* second (bottom) nibble */
+      nextSample = ADPCM_decode(nextNibble & 0x0f);
+      nextNibble = 0;
+    } else if(--playLen) {
+      nextNibble = flash.readNextByte();
+      /* first (top) nibble */
+      nextSample = ADPCM_decode(nextNibble >> 4);
+      /* we consumed top nibble, make sure nextNibble is non zero */
+      nextNibble |= 0x80;
+    }
   } else {
-    nextSample = 128;
+    nextSample = 32768;
   }
 }
 

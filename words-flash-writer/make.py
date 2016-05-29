@@ -47,17 +47,16 @@ def main():
         text])
     subprocess.call([
       'sox',
-      '-D',
       'out.wav',
+      '-t', 'ima',
+      '-e', 'ima-adpcm',
       '-r', str(SAMPLING_RATE),
-      '-e', 'unsigned-integer',
-      '-b', '8',
       '-c', '1',
-      'snd.raw',
+      'snd.ima',
       'vol', '1.2'])
-    snd_data = file('snd.raw').read()
+    snd_data = file('snd.ima').read()
     os.unlink('out.wav')
-    os.unlink('snd.raw')
+    os.unlink('snd.ima')
     defs += ['#define WORD_%s %d  // %s' % (var, cnt, text)]
     cnt += 1
     inx += [chr(addr>>16)]
