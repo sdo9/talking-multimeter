@@ -246,11 +246,7 @@ void play(int utt) {
   unsigned len = end_addr - addr;
   //Serial.print(addr); Serial.print(F(" ")); Serial.println(len);
   flash.beginRead(addr);
-
-  if (len) {
-    len--;
-    nextSample = flash.readNextByte();
-  }
+  nextSample = flash.readNextByte();
 
   isPlaying = 1;
 
@@ -279,8 +275,7 @@ ISR(TIMER1_OVF_vect) {
 
   OCR1A = ((uint32_t)nextSample * PWM_SCALE) >> 8;
 
-  if (playLen) {
-    playLen--;
+  if (playLen && --playLen) {
     nextSample = flash.readNextByte();
   } else {
     nextSample = 128;
