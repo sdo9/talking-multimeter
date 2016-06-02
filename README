@@ -7,6 +7,8 @@ it under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 2 of the License, or
 (at your option) any later version.
 
+Thanks to Nicolas Pitre <nico@fluxnic.net> for contributions.
+
 I made a talking module for a UT61E multimeter. These multimeters have
 an IR output meant for logging to a computer; instead I made a module
 that speaks out the multimeter's setting and measurements, so it can
@@ -55,8 +57,8 @@ This directory contains:
 
 circuit-spec.txt: detailed explanation of the circuit used.
 
-makeit: quick&dirty build script / Cheet sheet of how to build this
-with ino.
+Makefile: makefile to obtain files, patch, build and upload, assuming
+you use Arturo (aka ano).
 
 words-flash-writer/ : program to generate sound data, Arduino sketch and
 python client utility to upload sound data to the flash chip through
@@ -111,6 +113,7 @@ ATMEGA328P at 8MHz is: -m pro --cpu 8MHzatmega328.
 
 Small driver for the Winbond 25Q80BV or MX25L4006EPI-12G flash chips:
 Used by both the flash writer sketch and DMM talking module sketch.
+The Makefile already knows how to git clone and patch, as follows.
 We use Adafruit's TinyFlash library,
 https://github.com/adafruit/Adafruit_TinyFlash
 Apply my patch: patches/tiny-flash.diff:
@@ -140,8 +143,37 @@ cd /usr/share/arduino/hardware/arduino/bootloaders
 avrdude -c usbtiny -p atmega328p \
   -U flash:w:./atmega/ATmegaBOOT_168_atmega328_pro_8MHz.hex:i
 
+Makefile targets
+================
+
+$ make writer
+  Build the audio flash writer.
+
+$ make dmm
+  Build the main DMM talking module.
+
+$ make upload_dmm
+  Build and upload the DMM talking module.
+
+$ upload_words
+  Build and upload the audio flash writer, then upload the audio data.
+
+$ make everything
+  Build and upload both the audio data and then the DMM talking module.
+
+$ make watch
+  Watch serial output.
+
+$ make clean
+  Remove the build, except for downloaded libraries.
+
+$ make distclean
+  Delete the entire build tree.
+
 Generating Sound Data
 =====================
+
+This is done by the Makefile but here's an explanation.
 
 Under words-flash-writer/ you'll find:
 
@@ -168,6 +200,8 @@ to the flash chip.
 
 DMM Talking Module Sketch
 =========================
+
+This too is done by the Makefile, but requires some explaining.
 
 The DMM talking module sketch relies on a modification to the
 SoftwareSerial module. Normally, that module installs an interrupt
