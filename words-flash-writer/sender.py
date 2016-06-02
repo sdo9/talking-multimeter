@@ -14,8 +14,17 @@ import serial
 import sys
 import time
 
+if len(sys.argv) > 1:
+  # Serial port to use if first arg is given.
+  port = sys.argv[1]
+else:
+  # Try and use ano's guessing facility for consistency.
+  import ano.environment
+  e = ano.environment.Environment()
+  port = e.guess_serial_port()
+
 s = serial.Serial(
-  port='/dev/ttyUSB0',
+  port=port,
   baudrate=38400,
   bytesize=serial.EIGHTBITS,
   parity=serial.PARITY_NONE,
