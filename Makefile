@@ -67,7 +67,7 @@ upload_dmm: dmm
 	ano upload -m pro --cpu 8MHzatmega328
 
 upload_words: build/words-flash-writer/snd.data build/words-flash-writer/sender.py writer
-	cd build/dmm-talking-arduino-sketch && \
+	cd build/words-flash-writer && \
 	ano upload -m pro --cpu 8MHzatmega328 && \
 	sleep 2 && \
 	./sender.py
