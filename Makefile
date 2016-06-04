@@ -87,6 +87,9 @@ everything: upload_words upload_dmm
 watch:
 	ano serial -b 115200
 
+asmdump:
+	avr-objdump -d -S build/dmm-talking-arduino-sketch/.build_ano/pro/firmware.elf | less
+
 clean:
 	rm -rf build/words-flash-writer/
 	rm -rf build/dmm-talking-arduino-sketch/
@@ -94,6 +97,6 @@ clean:
 distclean:
 	rm -rf build/
 
-.PHONY: writer dmm upload_dmm upload_words everything watch clean distclean
+.PHONY: writer dmm upload_dmm upload_words everything watch asmdump clean distclean
 
 GNUMAKEFLAGS := --no-print-directory
