@@ -66,7 +66,7 @@ duty_cycle:duty cycle
 pmax
 pmin
 dc
-ac
+ac:a c
 autorange:auto range
 relative
 hold
