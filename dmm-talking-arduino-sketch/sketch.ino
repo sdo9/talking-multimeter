@@ -20,14 +20,9 @@
 // are chosen so the button and serial rx use different interrupts.
 #define BUTTON1_PIN 8
 #define DMM_SERIAL_RX_PIN 2
-#define UNUSED_SERIAL_TX_PIN 5
 
 #include <Arduino.h>
 #include <avr/sleep.h>
-
-#include "SoftwareSerial.h"
-SoftwareSerial mySerial(DMM_SERIAL_RX_PIN, UNUSED_SERIAL_TX_PIN, true);
-// tx is not used, but the lib wants a pin.
 
 #include <Adafruit_TinyFlash.h>
 Adafruit_TinyFlash flash(FLASH_CS_PIN);
@@ -37,8 +32,8 @@ Adafruit_TinyFlash flash(FLASH_CS_PIN);
 #define FLASH_MAGIC2 0xEE
 #define FLASH_MAGIC3 0xED
 
+#include "soft_rx.h"
 #include "es519xx.h"
-
 #include "talking.h"
 #include "adpcm.h"
 
@@ -138,7 +133,7 @@ void setup(){
 
   analogReference(INTERNAL);
 
-  mySerial.begin(19200);
+  soft_rx_start();
 
   Serial.print(F("RAM ")); Serial.println(getFreeRam());
 
@@ -164,8 +159,7 @@ void setPinChangeInterrupt(int pin) {
 }
 
 // Button on pin 8 using PCINT0_vect.
-// Serial rx from DMM on pin 2, using PCINT2_vect. SoftwareSerial lib was
-// modified to use only PCINT2_vect.
+// Serial rx from DMM on pin 2, using PCINT2_vect.
 // This way we have one pin per interrupt.
 ISR(PCINT0_vect) { pinChangeISR(); }
 
@@ -422,14 +416,14 @@ int parityCheck(uint8_t *bp) {
 
 void loop()
 {
-  int b = mySerial.read();
+  int b = soft_rx_get();
   if (b >= 0) {
     long now = millis();
     if (now - last_rcv > INTER_PACKET_TIMEOUT_MS)
       buf_len = 0;
     last_rcv = now;
     buf[buf_len++] = b;
-    if (buf_len == 14 && mySerial.available())
+    if (buf_len == 14 && !soft_rx_empty())
       buf_len = 0;
     if (buf_len == 14) {
       int ok = 1;
@@ -516,4 +510,15 @@ void sayError(uint8_t code) {
   waitForSpeech();
   delay(400);
 #endif
+}
+
+/*
+ * This is pulled by soft_rx when debugging is active,
+ * discarded by the linker due to -gc-sections otherwise.
+ */
+void _dbg_(char *string, bool do_val, long val, bool do_ln)
+{
+  Serial.print(string);
+  if (do_val) Serial.print(val);
+  if (do_ln) Serial.println();
 }

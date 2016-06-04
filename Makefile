@@ -54,7 +54,6 @@ dmm_src_files := \
 dmm_deps := \
 	build/dmm-talking-arduino-sketch/lib/Adafruit_TinyFlash \
 	build/dmm-talking-arduino-sketch/src/words_def.h \
-	build/dmm-talking-arduino-sketch/src/SoftwareSerial.cpp \
 	$(patsubst dmm-talking-arduino-sketch/%, \
 	           build/dmm-talking-arduino-sketch/src/%, \
 	           $(dmm_src_files))
