@@ -12,15 +12,6 @@ build/%/lib/Adafruit_TinyFlash \
 	rm -rf $@ && cp -a build/Adafruit_TinyFlash $@ && \
 	patch -d $@ -p1 < patches/tiny-flash.diff
 
-build/dmm-talking-arduino-sketch/src/SoftwareSerial.cpp \
- : patches/SoftwareSerial.diff | build/dmm-talking-arduino-sketch
-	# Get SoftwareSerial.cpp from arduino development tools.
-	# It's either directly there or under src/.
-	rm -f $@
-	find /usr/share/arduino/hardware/arduino/avr/libraries/SoftwareSerial \
-	    -name SoftwareSerial.cpp -exec cp -v "{}" $@ \;
-	patch $@ < patches/SoftwareSerial.diff
-
 build/words-flash-writer/%: words-flash-writer/% | build/words-flash-writer
 	cp $< $@
 
