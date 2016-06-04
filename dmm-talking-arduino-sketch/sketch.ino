@@ -273,9 +273,17 @@ void stopPlay() {
   finished_talking = millis();
 }
 
+static volatile boolean inAudioISR;
+
 ISR(TIMER1_OVF_vect) {
+  /* protect ourself against reentrancy */
+  if (inAudioISR) return;
+  inAudioISR = 1;
 
   OCR1A = ((uint32_t)nextSample * PWM_SCALE) >> 16;
+
+  /* the code that follows is heavy, be nice to other ISRs */
+  sei();
 
   if (playLen) {
     if (nextNibble) {
@@ -292,6 +300,9 @@ ISR(TIMER1_OVF_vect) {
   } else {
     nextSample = 32768;
   }
+
+  cli();
+  inAudioISR = 0;
 }
 
 void playLoop() {
