@@ -148,7 +148,7 @@ static inline uint8_t get_delta(bool update)
 	if (delta32 > RX_LARGEST_PERIOD_TICKS)
 		return 255;
 	else
-		return delta <<= RX_TICK_UPSCALE;
+		return delta << RX_TICK_UPSCALE;
 }
 
 ISR(PCINT2_vect)
@@ -264,7 +264,6 @@ int soft_rx_get(void)
 			data |= 0x80;
 			_rx_dbg_v(" ", curr & 1);
 		} while (--bits);
-		curr_bit_time = 0;
 	}
 
 	curr_bit_time += RX_BIT_DURATION;
