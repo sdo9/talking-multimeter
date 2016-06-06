@@ -20,6 +20,7 @@
 
 #include <Arduino.h>
 #include <avr/interrupt.h>
+#include <avr/sleep.h>
 
 #include "soft_rx.h"
 
@@ -31,6 +32,7 @@
 
 #define RX_ERR_COUNT 0	/* maintain error counters */
 #define RX_DEBUG 0	/* print debug traces */
+#define RX_SLEEP_HACK 1	/* needed when disabling the BOD during sleep */
 
 /*
  * We sample TCNT0 and timer0_overflow_count on every edge transition.
@@ -157,11 +159,42 @@ ISR(PCINT2_vect)
 	uint8_t signal = (!!(*rx_port & rx_mask)) ^ RX_INVERTED;
 
 	uint8_t curr = rx_head, next = curr + 1;
-	if (next == rx_tail) {
+next:	if (next == rx_tail) {
 		/* overflow */
 		_rx_err(overflow);
 		return;
 	}
+
+#if RX_SLEEP_HACK
+	/*
+	 * There is a delay of about 60 microsecs before the ISR is serviced
+	 * when coming back from sleep where the BOD was disabled. Try to
+	 * mitigate this which otherwise eats up our start bit.
+	 */
+	if (_SLEEP_CONTROL_REG & _SLEEP_ENABLE_MASK) {
+		sleep_disable();
+		/* back up our time stamp by 60 microsecs */
+		rx_last_time -= F_CPU/1000000*60/64;
+		if (!(curr & 1) || delta != 255) {
+			/* should happen only from a long stop bit */
+			_rx_dbg_ln("bad soft_rx sync after wakeup");
+		} else if (signal) {
+			/*
+			 * Start (low) bit was probably missed. We can't be
+			 * sure for how long the signal has been back high.
+			 * Let's presume this just happened and fake the
+			 * missing start bit.
+			 */
+			rx_delta[curr] =255;
+			rx_head = next;
+			curr = next;
+			next++;
+			delta = RX_BIT_DURATION;
+			signal = 0;
+			goto next;
+		}
+	}
+#endif
 
 	/* 
 	 * The LSB of the index corresponds to the signal level.
