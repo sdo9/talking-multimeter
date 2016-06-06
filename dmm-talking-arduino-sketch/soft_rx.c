@@ -154,7 +154,7 @@ static inline uint8_t get_delta(bool update)
 ISR(PCINT2_vect)
 {
 	uint8_t delta = get_delta(1);
-	uint8_t signal = *rx_port & rx_mask;
+	uint8_t signal = (!!(*rx_port & rx_mask)) ^ RX_INVERTED;
 
 	uint8_t curr = rx_head, next = curr + 1;
 	if (next == rx_tail) {
@@ -169,7 +169,7 @@ ISR(PCINT2_vect)
 	 * for which we're about to record the duration. Therefore
 	 * current signal should be opposite to the index LSB.
 	 */
-	if ((curr & 1) ^ (!!signal) != RX_INVERTED ? 0 : 1) {
+	if ((curr & 1) == signal) {
 		_rx_err(irq_sync);
 		return;
 	}
