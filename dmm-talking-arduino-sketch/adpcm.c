@@ -7,7 +7,15 @@
 #include <stdint.h>
 #include "adpcm.h"
 
-static const uint16_t ADPCM_step_table[89] = {
+#ifndef SELF_TEST
+#include <avr/pgmspace.h>
+#else
+#define PROGMEM
+#define pgm_read_byte(ptr) (*(ptr))
+#define pgm_read_word(ptr) (*(ptr))
+#endif
+
+static const uint16_t ADPCM_step_table[89] PROGMEM = {
       7,      8,      9,     10,     11,     12,     13,     14,     16,
      17,     19,     21,     23,     25,     28,     31,     34,     37,
      41,     45,     50,     55,     60,     66,     73,     80,     88,
@@ -20,7 +28,7 @@ static const uint16_t ADPCM_step_table[89] = {
   16818,  18500,  20350,  22385,  24623,  27086,  29794,  32767
 };
 
-static const int8_t ADPCM_index_ttable[16] = {
+static const int8_t ADPCM_index_ttable[16] PROGMEM = {
      -1,     -1,     -1,     -1,      2,      4,      6,      8,
      -1,     -1,     -1,     -1,      2,      4,      6,      8
 };
@@ -36,11 +44,11 @@ static uint16_t ADPCM_prev_sample;
 uint16_t ADPCM_decode(uint8_t code)
 {
 	uint8_t index = ADPCM_index;
-	ADPCM_index += ADPCM_index_ttable[code];
+	ADPCM_index += pgm_read_byte(&ADPCM_index_ttable[code]);
 	if (ADPCM_index < 0) ADPCM_index = 0;
 	if (ADPCM_index > 88) ADPCM_index = 88;
 
-	uint16_t step = ADPCM_step_table[index];
+	uint16_t step = pgm_read_word(&ADPCM_step_table[index]);
 	uint16_t delta = 0;
 	if (code & 4) delta += step;
 	step >>= 1;
