@@ -231,8 +231,9 @@ int soft_rx_get(void)
 	if (curr == last)
 		return SOFT_RX_INCOMPLETE;
 
+	/* 8 data bits + 1 start bit which will be shifted out */
+	uint8_t bits = 9;
 	uint8_t data = 0;
-	uint8_t bits = 8;
 
 	/*
 	 * curr is on the start bit.  curr_bit_time should start with
@@ -252,6 +253,11 @@ int soft_rx_get(void)
 	level_duration -= RX_BIT_DURATION/2;
 
 	do {
+		/* record current data bit */
+		data >>= 1;
+		if (curr & 1) data |= 0x80;
+		_rx_dbg_v(" ", curr & 1);
+		bits--;
 		curr_bit_time += RX_BIT_DURATION;
 		if (curr_bit_time > level_duration) {
 			curr_bit_time = 0;
@@ -264,11 +270,7 @@ int soft_rx_get(void)
 			}
 			level_duration -= RX_BIT_DURATION/2;
 		}
-		/* record current data bit */
-		data >>= 1;
-		if (curr & 1) data |= 0x80;
-		_rx_dbg_v(" ", curr & 1);
-	} while (--bits);
+	} while (bits);
 
 	if (bits) {
 		/* If low period then stop bit not received yet. */
@@ -297,16 +299,6 @@ int soft_rx_get(void)
 			data |= 0x80;
 			_rx_dbg_v(" ", curr & 1);
 		} while (--bits);
-	}
-
-	curr_bit_time += RX_BIT_DURATION;
-	if (curr_bit_time > level_duration) {
-		/*
-		 * We don't know the next period duration but we know
-		 * the current one is over.
-		 */
-		curr++;
-		_rx_dbg((curr & 1) ? " +?" : " -?");
 	}
 
 	if (curr & 1) {
