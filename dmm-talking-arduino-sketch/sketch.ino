@@ -70,7 +70,6 @@ unsigned long last_rcv;
 unsigned long last_battery_check, last_low_batt_announce;
 unsigned long last_packet;
 unsigned long woke_at;
-int8_t no_signal = 1;
 uint8_t buf[15];
 int8_t buf_len;
 
@@ -83,7 +82,7 @@ struct utter_buffer *new_utterbuf = &utterbufs[1];
 utter_t *playing_utterances = new_utterbuf->utterances;
 unsigned long finished_talking;
 
-boolean isPlaying;
+bool isPlaying;
 // Number of sound samples left in current clip.
 volatile unsigned playLen;
 // Prefetched audio sample
@@ -93,7 +92,7 @@ uint8_t nextNibble;
 
 struct ButtonState {
   int8_t pin;
-  int8_t isPressed;
+  bool isPressed;
   unsigned long pressTime, releaseTime;
 };
 volatile struct ButtonState button1_btn;
@@ -137,7 +136,7 @@ void setup(){
 
   Serial.print(F("RAM ")); Serial.println(getFreeRam());
 
-  int mv = GetBatteryVoltage();
+  uint16_t mv = GetBatteryVoltage();
   Serial.print(F("batt mv ")); Serial.println(mv);
 
   playSync(WORD_hello);
@@ -151,7 +150,7 @@ void pinChangeISR()
   handleButton(&button1_btn);
 }
 
-void setPinChangeInterrupt(int pin) {
+void setPinChangeInterrupt(uint8_t pin) {
   cli();
   *digitalPinToPCICR(pin) |= _BV(digitalPinToPCICRbit(pin));
   *digitalPinToPCMSK(pin) |= _BV(digitalPinToPCMSKbit(pin));
@@ -165,7 +164,7 @@ ISR(PCINT0_vect) { pinChangeISR(); }
 
 void handleButton(volatile struct ButtonState* button)
 {
-  int isPressed = digitalRead(button->pin) == LOW;
+  bool isPressed = digitalRead(button->pin) == LOW;
   if (isPressed == button->isPressed)
     return;
   if (isPressed) {
@@ -176,12 +175,12 @@ void handleButton(volatile struct ButtonState* button)
   button->isPressed = isPressed;
 }
 
-int WasButtonPressed(volatile struct ButtonState *button)
+bool WasButtonPressed(volatile struct ButtonState *button)
 {
   if (!button->pressTime)
     return 0;
   cli();
-  int ret = 0;
+  bool ret = 0;
   if (button->pressTime) {
     if (button->releaseTime > button->pressTime) {
       if (button->releaseTime - button->pressTime > BUTTON_BOUNCE_DELAY_MS) {
@@ -273,7 +272,7 @@ void stopPlay() {
   finished_talking = millis();
 }
 
-static volatile boolean inAudioISR;
+static volatile bool inAudioISR;
 
 ISR(TIMER1_OVF_vect) {
   /* protect ourself against reentrancy */
@@ -372,25 +371,25 @@ void sayInt(int n) {
   playNewUtterances();
 }
 
-int GetBatteryVoltage()
+uint16_t GetBatteryVoltage()
 {
   ADCSRA |= _BV(ADEN);
   delay(10);
-  int b;
-  for(int i = 0; i<10; i++)
+  uint16_t b;
+  for(uint8_t i = 0; i<10; i++)
     b = analogRead(BATT_MEAS_ANALOG_PIN);
   // Measurement is out of 1024 against a 1.1V reference. Given the voltage
   // divider, the battery voltage should be ~5times the measured value.
   // And we want it in mV.
   // So b/1024*1.1*5*1000 = b*5500 >> 10.
-  b = (((long)b)*5500L) >> 10;
+  b = (((uint32_t)b)*5500L) >> 10;
   return b;
 }
 
 void SpeakBattLevel()
 {
-  int mv = GetBatteryVoltage();
-  int l;
+  uint16_t mv = GetBatteryVoltage();
+  uint8_t l;
 #define NBATT 3
 #define LOW_BATT (1100 *NBATT)
   if (mv < LOW_BATT) l = 0;
@@ -418,7 +417,7 @@ void SpeakBattLevel()
 }
 
 
-int parityCheck(uint8_t *bp) {
+bool parityCheck(uint8_t *bp) {
   uint8_t b = *bp;
   *bp = b & 0x7F;
   b ^= b >> 4; b ^= b >> 2; b ^= b >> 1; 
@@ -437,8 +436,8 @@ void loop()
     if (buf_len == 14 && !soft_rx_empty())
       buf_len = 0;
     if (buf_len == 14) {
-      int ok = 1;
-      for (int i = 0; i < buf_len; i++) {
+      bool ok = 1;
+      for (uint8_t i = 0; i < buf_len; i++) {
         if (!(ok = parityCheck(buf+i)))
           break;
       }
@@ -450,7 +449,6 @@ void loop()
         Serial.print(F("buf: ")); Serial.print((char*)buf);
         handle(buf);
         last_packet = millis();
-        no_signal = 0;
       }
       buf_len = 0;
     }
@@ -460,7 +458,7 @@ void loop()
                     || millis() - last_battery_check > BATTERY_CHECK_INTERVAL)) {
     last_battery_check = millis();
     // While playing so we have the amp's draw.
-    int mv = GetBatteryVoltage();
+    uint16_t mv = GetBatteryVoltage();
     Serial.print(F("batt mv ")); Serial.println(mv);
     if (mv < LOW_BATT) {
       if (last_low_batt_announce == 0 || millis() - last_low_batt_announce > LOW_BATTERY_ANNOUNCE_INTERVAL) {
@@ -499,10 +497,9 @@ void loop()
 
 void handle(uint8_t *buf) {
   struct utter_buffer *utterbuf = setupNewUtterance();
-  int r;
-  int already_talking = isPlaying || millis() - finished_talking < INTER_ANNOUNCEMENT_DELAY_MS;
-  if ((r = handle_packet(
-      buf, mode == 1, already_talking, millis(), utterbuf)) < 0) {
+  bool already_talking = isPlaying || millis() - finished_talking < INTER_ANNOUNCEMENT_DELAY_MS;
+  int8_t r = handle_packet(buf, mode == 1, already_talking, millis(), utterbuf);
+  if (r < 0) {
     Serial.print(F("packet error ")); Serial.println(r);
     sayError(-r);
     return;

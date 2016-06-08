@@ -16,6 +16,7 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <ctype.h>
 #include <string.h>
 #include <stdio.h>
@@ -140,19 +141,19 @@ static const utter_t _option_utterances[] = {
 
 struct reading_s {
   utter_t func_name;
-  uint8_t opts[N_OPTS];
+  bool opts[N_OPTS];
   utter_t scale;
   utter_t unit;
-  long int_value;
+  uint32_t int_value;
   int8_t n_decimals;
-  uint8_t is_negative;
+  bool is_negative;
 };
 
-static int parse(
+static int8_t parse(
     const uint8_t *buf,
     struct reading_s *reading) {
 	/* Status byte */
-  int8_t is_judge = (buf[7] & (1 << 3)) != 0;
+  bool is_judge = (buf[7] & (1 << 3)) != 0;
   reading->opts[OPT_BATT] = (buf[7] & (1 << 1)) != 0; /* battery low */
   reading->opts[OPT_OL] = (buf[7] & (1 << 0)) != 0; /* input overflow */
   /* Option 1 byte */
@@ -170,7 +171,7 @@ static int parse(
   reading->opts[OPT_DC] = (buf[10] & (1 << 3)) != 0;  // DC measurement mode, either voltage or current.
   reading->opts[OPT_AC] = (buf[10] & (1 << 2)) != 0;
   reading->opts[OPT_AUTORANGE] = (buf[10] & (1 << 1)) != 0;  // 1-automatic mode, 0-manual
-  uint8_t is_vahz = (buf[10] & (1 << 0)) != 0;
+  bool is_vahz = (buf[10] & (1 << 0)) != 0;
 
   /* Option 4 byte */
   //reading->opts[OPT_VBAR] = (buf[11] & (1 << 2)) != 0;  // 1-VBAR pin is connected to V-.
@@ -180,7 +181,7 @@ static int parse(
 	/* Function byte */
   uint8_t func_code = buf[6];
   const struct function_spec *fn = NULL;
-  int i;
+  uint8_t i;
   for (i=0; i<sizeof(functions)/sizeof(functions[0]); i++) {
     if (func_code == functions[i].func_code) {
       fn = &functions[i];
@@ -212,7 +213,7 @@ static int parse(
     reading->func_name = WORD_duty_cycle;
     range = &vahz_duty_cycle_range;
   } else {
-    int range_idx = buf[0] - '0';
+    int8_t range_idx = buf[0] - '0';
     if (range_idx < 0 || range_idx > 7) {
       dbg("Invalid range index byte: 0x%02x", buf[0]);
       return -3;
@@ -241,7 +242,7 @@ static int parse(
     }
   }
 
-  long val = 0;
+  uint32_t val = 0;
   for (i=0; i<5; i++) {
     val = 10*val + (buf[1+i] - '0');
   }
@@ -255,12 +256,12 @@ static int parse(
 // an int) and a number of decimals. Return the integer part of the
 // reading and fill out an array of word codes corresponding to
 // decimal digits.
-static long quantize(
-    long int_base,
-    int n_decimals,
+static uint32_t quantize(
+    uint32_t int_base,
+    int8_t n_decimals,
     utter_t *decimals)
 {
-  int i;
+  int8_t i;
   if (n_decimals > 0) {
     for (i=n_decimals - 1; i >= 0; i--) {
       decimals[i] = WORD_zero + (int_base % 10);
@@ -279,7 +280,7 @@ static long quantize(
 static struct reading_s last_reading;
 // Last rounded value, if subsequent measurements don't change much then
 // we stay silent for a bit.
-static long last_rnd_base;
+static int32_t last_rnd_base;
 // Time we last spoke.
 static long last_spoke;
 // Time we last spoke out the unit and scale (as opposed to just the measurement).
@@ -298,32 +299,32 @@ static long last_spoke_unit;
 // pmin/pmax mode: we get both the pmin and pmax packets, and we can't tell
 // which one the user has toggled to. So we'll keep our own toggle, and the
 // way you flip it is by exiting pmin/max mode and reentering it.
-int last_pminmax = 0;
+bool last_pminmax = 0;
 
-int handle_packet(
+int8_t handle_packet(
     const uint8_t *buf,
-    int verbose,
-    int already_talking,
+    bool verbose,
+    bool already_talking,
     long now_millis,
     struct utter_buffer *utterbuf)
 {
-	struct reading_s reading;
+  struct reading_s reading;
   memset(&reading, 0, sizeof(reading));
   const utter_t decimals[6];
 
-	if (buf[14 - 2] != '\r' || buf[14 - 1] != '\n') {
+  if (buf[14 - 2] != '\r' || buf[14 - 1] != '\n') {
     dbg("Did not find CRLF");
     return -6;
   }
 
-  int r;
-  if ((r = parse(buf, &reading)) != 0) {
+  int8_t r = parse(buf, &reading);
+  if (r != 0) {
     return r;
   }
 
-  long int_value = quantize(reading.int_value, reading.n_decimals, decimals);
+  uint32_t int_value = quantize(reading.int_value, reading.n_decimals, decimals);
 
-  int spoke = 0, spoke_unit = 0;
+  bool spoke = 0, spoke_unit = 0;
   if (reading.func_name != last_reading.func_name) {
     // Interrupt ourselves if we switched to a different function.
     UTTER(reading.func_name);
@@ -341,7 +342,7 @@ int handle_packet(
     return 0;
   if (reading.opts[OPT_PMIN] && !last_pminmax)
     return 0;
-  int o;
+  uint8_t o;
   for (o=0; o<N_OPTS; o++) {
     if (reading.opts[o] != last_reading.opts[o]
         || (o == OPT_OL && reading.opts[o] && now_millis - last_spoke > OVER_LIMIT_REPEAT_INTERVAL_MS)
@@ -380,8 +381,8 @@ int handle_packet(
   }
   if (!reading.opts[OPT_OL] && !reading.opts[OPT_UL]) {
     // Round off the value so it's faster to speak.
-    long rnd_base;
-    int n_decimals;
+    int32_t rnd_base;
+    int8_t n_decimals;
     if (reading.int_value >= 10000) {
       rnd_base = (reading.int_value +49) /100 * (reading.is_negative ? -1 : 1);
       n_decimals = reading.n_decimals -2;

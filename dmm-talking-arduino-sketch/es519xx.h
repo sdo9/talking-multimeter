@@ -2,10 +2,10 @@
 extern "C" {
 #endif
 
-int handle_packet(
+int8_t handle_packet(
   const uint8_t *buf,
-  int verbose,
-  int already_talking,
+  bool verbose,
+  bool already_talking,
   long now_millis,
   struct utter_buffer *utterbuf);
 
