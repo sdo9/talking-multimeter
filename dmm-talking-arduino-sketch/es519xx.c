@@ -282,9 +282,9 @@ static struct reading_s last_reading;
 // we stay silent for a bit.
 static int32_t last_rnd_base;
 // Time we last spoke.
-static long last_spoke;
+static unsigned long last_spoke;
 // Time we last spoke out the unit and scale (as opposed to just the measurement).
-static long last_spoke_unit;
+static unsigned long last_spoke_unit;
 // In terse mode, if the rounded value hasn't changed significantly,
 // we stay silent, up to this interval at which point we do report the
 // current measurement.
@@ -305,7 +305,7 @@ int8_t handle_packet(
     const uint8_t *buf,
     bool verbose,
     bool already_talking,
-    long now_millis,
+    unsigned long now_millis,
     struct utter_buffer *utterbuf)
 {
   struct reading_s reading;

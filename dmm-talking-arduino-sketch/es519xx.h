@@ -6,7 +6,7 @@ int8_t handle_packet(
   const uint8_t *buf,
   bool verbose,
   bool already_talking,
-  long now_millis,
+  unsigned long now_millis,
   struct utter_buffer *utterbuf);
 
 void reset_on_powercycle();

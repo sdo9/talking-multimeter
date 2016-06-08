@@ -428,7 +428,7 @@ void loop()
 {
   int b = soft_rx_get();
   if (b >= 0) {
-    long now = millis();
+    unsigned long now = millis();
     if (now - last_rcv > INTER_PACKET_TIMEOUT_MS)
       buf_len = 0;
     last_rcv = now;
@@ -497,8 +497,9 @@ void loop()
 
 void handle(uint8_t *buf) {
   struct utter_buffer *utterbuf = setupNewUtterance();
-  bool already_talking = isPlaying || millis() - finished_talking < INTER_ANNOUNCEMENT_DELAY_MS;
-  int8_t r = handle_packet(buf, mode == 1, already_talking, millis(), utterbuf);
+  unsigned long now = millis();
+  bool already_talking = isPlaying || now - finished_talking < INTER_ANNOUNCEMENT_DELAY_MS;
+  int8_t r = handle_packet(buf, mode == 1, already_talking, now, utterbuf);
   if (r < 0) {
     Serial.print(F("packet error ")); Serial.println(r);
     sayError(-r);
