@@ -80,7 +80,7 @@ struct utter_buffer utterbufs[2];
 struct utter_buffer *playing_utterbuf = &utterbufs[0];
 struct utter_buffer *new_utterbuf = &utterbufs[1];
 // Points to the next utterance to speak in the series.
-int *playing_utterances = new_utterbuf->utterances;
+utter_t *playing_utterances = new_utterbuf->utterances;
 unsigned long finished_talking;
 
 boolean isPlaying;
@@ -212,7 +212,7 @@ void waitForSpeech()
 #define CLOCK_RATE 8000000
 #define PWM_SCALE (CLOCK_RATE / SAMPLING_RATE)
 
-void play(int utt) {
+void play(utter_t utt) {
   //Serial.print(F("play: ")); Serial.println(utt);
   if (utt <= 0 || utt >= WORDS_LEN) {
     stopPlay();
@@ -359,7 +359,7 @@ void playNewUtterances()
   }
 }
 
-void playSync(int utt) {
+void playSync(utter_t utt) {
   struct utter_buffer *utterbuf = setupNewUtterance();
   UTTER(utt);
   playNewUtterances();

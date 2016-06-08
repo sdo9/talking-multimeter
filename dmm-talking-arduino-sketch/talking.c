@@ -11,7 +11,7 @@
 
 #include "talking.h"
 
-void appendUtterance(int utt, struct utter_buffer *utterbuf) {
+void appendUtterance(utter_t utt, struct utter_buffer *utterbuf) {
   if (utt == NO_WORD)
     return;
   if (utterbuf->utter_pos + 1 >= NUM_UTTERS) return; // full.

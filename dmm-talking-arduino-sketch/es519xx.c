@@ -40,13 +40,13 @@ static long abs(long a) {
 
 struct range_spec {
   const int8_t n_decimals;
-  const int scale;  // word code, f.e. WORD_milli
-  const int unit;  // word code, f.e. WORD_volts
+  const utter_t scale;  // word code, f.e. WORD_milli
+  const utter_t unit;  // word code, f.e. WORD_volts
 };
 
 struct function_spec {
   const uint8_t func_code;
-  const int name;  // word code
+  const utter_t name;
   const struct range_spec ranges[8];
 };
 
@@ -123,7 +123,7 @@ static const struct range_spec vahz_duty_cycle_range = {
 //Also RMR VBAR LPF.
 #define N_OPTS 12
 
-static const int _option_utterances[] = {
+static const utter_t _option_utterances[] = {
   WORD_dmm_low_batt, // OPT_BATT
   WORD_dc, // OPT_DC
   WORD_ac, // OPT_AC
@@ -139,10 +139,10 @@ static const int _option_utterances[] = {
 };
 
 struct reading_s {
-  int func_name;  // word code
+  utter_t func_name;
   uint8_t opts[N_OPTS];
-  int scale;  // word code
-  int unit;  // word code
+  utter_t scale;
+  utter_t unit;
   long int_value;
   int8_t n_decimals;
   uint8_t is_negative;
@@ -258,7 +258,7 @@ static int parse(
 static long quantize(
     long int_base,
     int n_decimals,
-    int *decimals)
+    utter_t *decimals)
 {
   int i;
   if (n_decimals > 0) {
@@ -266,9 +266,9 @@ static long quantize(
       decimals[i] = WORD_zero + (int_base % 10);
       int_base /= 10;
     }
-    decimals[n_decimals] = -1;
+    decimals[n_decimals] = NO_WORD;
   } else {
-    decimals[0] = -1;
+    decimals[0] = NO_WORD;
     for (i=0; i > n_decimals; i--) {
       int_base *= 10;
     }
@@ -309,7 +309,7 @@ int handle_packet(
 {
 	struct reading_s reading;
   memset(&reading, 0, sizeof(reading));
-  const int decimals[6];
+  const utter_t decimals[6];
 
 	if (buf[14 - 2] != '\r' || buf[14 - 1] != '\n') {
     dbg("Did not find CRLF");
@@ -405,12 +405,12 @@ int handle_packet(
       last_rnd_base = rnd_base;
       if (reading.is_negative) UTTER(WORD_minus);
       sayNumber(int_value, utterbuf);
-      const int *d = decimals;
-      if (d[0] != -1) {
+      const utter_t *d = decimals;
+      if (d[0] != NO_WORD) {
         UTTER(WORD_point);
-        while (*d != -1) {
-          UTTER(*(d++));
-        }
+        do {
+          UTTER(*d++);
+        } while (*d != NO_WORD);
       }
     }
   }
