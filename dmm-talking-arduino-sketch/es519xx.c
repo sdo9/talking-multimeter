@@ -323,8 +323,6 @@ int8_t handle_packet(
     return r;
   }
 
-  uint32_t int_value = quantize(reading.int_value, reading.n_decimals, decimals);
-
   bool spoke = 0, spoke_unit = 0;
   if (reading.func_name != last_reading.func_name) {
     // Interrupt ourselves if we switched to a different function.
@@ -390,24 +388,26 @@ int8_t handle_packet(
     spoke = 1;
   }
   if (!reading.opts[OPT_OL] && !reading.opts[OPT_UL]) {
+    uint32_t int_value;
     // Round off the value so it's faster to speak.
     int32_t rnd_base;
-    int8_t n_decimals;
+    int8_t rnd_n_decimals;
     if (reading.int_value >= 10000) {
       rnd_base = (reading.int_value +49) /100 * (reading.is_negative ? -1 : 1);
-      n_decimals = reading.n_decimals -2;
+      rnd_n_decimals = reading.n_decimals -2;
     } else if (reading.int_value >= 1000
                || (reading.int_value >= 100 && reading.n_decimals >= 2)
                || reading.n_decimals >= 3) {
       rnd_base = (reading.int_value +4) /10 * (reading.is_negative ? -1 : 1);
-      n_decimals = reading.n_decimals -1;
+      rnd_n_decimals = reading.n_decimals -1;
     } else {
       rnd_base = reading.int_value * (reading.is_negative ? -1 : 1);
-      n_decimals = reading.n_decimals;
+      rnd_n_decimals = reading.n_decimals;
     }
-    if (!verbose) {
-      int_value = quantize(abs(rnd_base), n_decimals, decimals);
-    }
+    if (verbose)
+      int_value = quantize(reading.int_value, reading.n_decimals, decimals);
+    else
+      int_value = quantize(abs(rnd_base), rnd_n_decimals, decimals);
     // In terse mode, we wait a bit for the value to change before speaking again.
     if (verbose || spoke
         || now_millis - last_spoke > UNCHANGING_REPORT_INTERVAL_MS
