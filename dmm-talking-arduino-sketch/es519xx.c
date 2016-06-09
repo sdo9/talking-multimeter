@@ -114,6 +114,7 @@ static const struct range_spec vahz_duty_cycle_range = {
 #define OPT_HOLD 4
     // Same comment??
 #define OPT_REL 5
+#define LAST_INTERRUPTING_OPT OPT_REL
 #define OPT_PMAX 6
 #define OPT_PMIN 7
 #define OPT_OL 8
@@ -329,8 +330,6 @@ int8_t handle_packet(
     // Interrupt ourselves if we switched to a different function.
     UTTER(reading.func_name);
     spoke = 1;
-  } else if(already_talking) {
-    return 0;  // finish what we were saying.
   }
   // pmin/max: If this reading isn't a pmin/max but the previous was,
   // then toggle which of the two to speak out next time.
@@ -344,12 +343,14 @@ int8_t handle_packet(
     return 0;
   uint8_t o;
   for (o=0; o<N_OPTS; o++) {
-    if (reading.opts[o] != last_reading.opts[o]
+    if (spoke
+        || reading.opts[o] != last_reading.opts[o]
         || (o == OPT_OL && reading.opts[o] && now_millis - last_spoke > OVER_LIMIT_REPEAT_INTERVAL_MS)
-        // pmin/max is special, keep announcing it and it's a pseudo terse effect.
+        // pmin/max is special, keep announcing it.
         || (o == OPT_PMAX && reading.opts[o])
-        || (o == OPT_PMIN && reading.opts[o])
-        || spoke) {
+        || (o == OPT_PMIN && reading.opts[o])) {
+      if (!spoke && o > LAST_INTERRUPTING_OPT && already_talking)
+        continue;  // Don't interrupt.
       // For many options, being off means we just don't mention them. For
       // some, we do want to know when they toggle off.
       if (!reading.opts[o]) {
@@ -369,6 +370,15 @@ int8_t handle_packet(
         UTTER(WORD_off);
       }
     }
+  }
+  if (!spoke && already_talking) {
+    // Some dial positions do not change function code but change only scale.
+    if ((reading.func_name == WORD_voltage || reading.func_name == WORD_current)
+        && reading.scale != last_reading.scale)
+      // AFAICT scale only changes by user intervention in those positions.
+      // For these we want to interrupt ourselves.
+      ;
+    else return 0;  // finish what we were saying.
   }
   if (reading.scale != last_reading.scale
       || reading.unit != last_reading.unit
