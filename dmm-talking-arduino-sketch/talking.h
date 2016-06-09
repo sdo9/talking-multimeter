@@ -2,10 +2,12 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
+
 #include "words_def.h"
 
 #if WORD_LEN < 256
-typedef unsigned char utter_t;
+typedef uint8_t utter_t;
 #else
 typedef unsigned int utter_t;
 #endif
@@ -15,7 +17,7 @@ typedef unsigned int utter_t;
 struct utter_buffer {
 #define NUM_UTTERS 15
   utter_t utterances[NUM_UTTERS];  // word codes.
-  char utter_pos;  // index in utterances of next free slot.
+  uint8_t utter_pos;  // index in utterances of next free slot.
 };
 
 void appendUtterance(utter_t utt, struct utter_buffer *utterbuf);
