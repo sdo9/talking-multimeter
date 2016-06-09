@@ -2,9 +2,8 @@ hello
 silence:silence=0.1
 packet_error:packet error
 no_signal:no signal
-mode
-verbose
-terse
+verbose_mode:verbose mode
+terse_mode:terse mode
 goodbye
 battery_level:battery level
 battery_voltage:battery voltage

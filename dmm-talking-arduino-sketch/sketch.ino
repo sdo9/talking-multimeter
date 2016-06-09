@@ -476,11 +476,10 @@ void loop()
       mode ^= 1;
       switch (mode) {
       case 0:
-        playSync(WORD_terse); break;
+        playSync(WORD_terse_mode); break;
       case 1:
-        playSync(WORD_verbose); break;
+        playSync(WORD_verbose_mode); break;
       };
-      playSync(WORD_mode);
       delay(INTER_ANNOUNCEMENT_DELAY_MS/2);
     }
   }
