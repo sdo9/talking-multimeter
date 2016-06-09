@@ -284,18 +284,16 @@ ISR(TIMER1_OVF_vect) {
   /* the code that follows is heavy, be nice to other ISRs */
   sei();
 
-  if (playLen) {
-    if (nextNibble) {
-      /* second (bottom) nibble */
-      nextSample = ADPCM_decode(nextNibble & 0x0f);
-      nextNibble = 0;
-    } else if(--playLen) {
-      nextNibble = flash.readNextByte();
-      /* first (top) nibble */
-      nextSample = ADPCM_decode(nextNibble >> 4);
-      /* we consumed top nibble, make sure nextNibble is non zero */
-      nextNibble |= 0x80;
-    }
+  if (playLen && nextNibble) {
+    /* second (bottom) nibble */
+    nextSample = ADPCM_decode(nextNibble & 0x0f);
+    nextNibble = 0;
+  } else if(playLen && --playLen) {
+    nextNibble = flash.readNextByte();
+    /* first (top) nibble */
+    nextSample = ADPCM_decode(nextNibble >> 4);
+    /* we consumed top nibble, make sure nextNibble is non zero */
+    nextNibble |= 0x80;
   } else {
     nextSample = 32768;
   }
