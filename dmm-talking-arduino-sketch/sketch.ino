@@ -509,16 +509,14 @@ void handle(uint8_t *buf) {
 }
 
 void sayError(uint8_t code) {
-#if 0  // Horribly frequent...
-  playSync(WORD_error);
+  playSync(WORD_packet_error);
   if (code < 1 || code > 9) {
-    playSync(WORD_error);
+    playSync(WORD_packet_error);
     return;
   }
   sayInt(code);
   waitForSpeech();
   delay(400);
-#endif
 }
 
 /*
