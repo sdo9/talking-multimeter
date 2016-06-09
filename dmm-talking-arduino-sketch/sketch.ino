@@ -208,8 +208,7 @@ void waitForSpeech()
   }
 }
 
-#define CLOCK_RATE 8000000
-#define PWM_SCALE (CLOCK_RATE / SAMPLING_RATE)
+#define PWM_SCALE (F_CPU / SAMPLING_RATE)
 
 void play(utter_t utt) {
   //Serial.print(F("play: ")); Serial.println(utt);
