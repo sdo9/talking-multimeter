@@ -229,6 +229,7 @@ void play(utter_t utt) {
   uint8_t d = flash.readNextByte();
   uint8_t e = flash.readNextByte();
   uint8_t f = flash.readNextByte();
+  flash.endRead();
 #if 0
   Serial.print(a); Serial.print(" ");
   Serial.print(b); Serial.print(" ");
