@@ -409,6 +409,7 @@ void SpeakBattLevel()
   sayNumber(mv, utterbuf);
   UTTER(WORD_milli);
   UTTER(WORD_volts);
+  UTTER(WORD_silence);
   UTTER(WORD_battery_level);
   sayNumber(l, utterbuf);
   UTTER(WORD_out_of_7);
