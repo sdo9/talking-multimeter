@@ -19,10 +19,7 @@ build/words-flash-writer/%: words-flash-writer/% | build/words-flash-writer
 # are not considered as a proper dependency for a rebuild.
 # Let's force it by removing affected product files.
 define fixdeps
-	if [ "$(suffix $@)" = ".h" ]; \
-	then for F in $$(cd $(dir $@) && grep -l $(notdir $@) *); \
-	do rm -vf "$(dir $@)../.build_ano/pro/src/$$F"*; \
-	done; fi
+	if [ "$(suffix $@)" = ".h" ]; then cd $(dir $@).. && ano clean; fi
 endef
 
 build/words-flash-writer/src/%: words-flash-writer/flash-writer-arduino-sketch/% | build/words-flash-writer
