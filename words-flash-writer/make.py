@@ -41,19 +41,21 @@ def main():
     else:
       subprocess.call([
         'espeak',
+        '-a', '200',
         '-s', '250',
         '-z',
         '-w', 'out.wav',
         text])
     subprocess.call([
       'sox',
+      '-G',
+      '-D',
       'out.wav',
       '-t', 'ima',
       '-e', 'ima-adpcm',
       '-r', str(SAMPLING_RATE),
       '-c', '1',
-      'snd.ima',
-      'vol', '1.2'])
+      'snd.ima'])
     snd_data = file('snd.ima').read()
     os.unlink('out.wav')
     os.unlink('snd.ima')
