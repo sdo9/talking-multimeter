@@ -1,0 +1,83 @@
+hello:salut
+silence:silence=0.1
+packet_error:erreur de paquet
+no_signal:pas de signal
+verbose_mode:mode précis
+terse_mode:mode bref
+goodbye:au revoir
+battery_level:niveau de la batterie
+battery_voltage:voltage de la batterie
+out_of_7:sur 7
+dmm_low_batt:la pile du multimêtre est faible
+talker_low_batt:les piles du module parlant sont faibles
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+30
+40
+50
+60_79:60
+80_99:80
+22_29:vinte
+21
+31
+41
+51
+61
+71
+100
+1000
+hundred:alias=100
+thousand:alias=1000
+point
+minus:moins
+nano
+micro
+milli
+kilo
+mega
+volts
+amperes:ampères
+ohms:ômes
+farads
+hertz
+percent:poursan
+unknown:inconnu
+voltage
+current:courant
+resistance:résistance
+continuity:continuité
+diode
+frequency:fréquence
+capacitance:capacité
+duty_cycle:régime
+pmax:p max
+pmin:p mine
+dc
+ac:a c
+autorange:auto calibrage
+relative:relatif
+hold:maintien
+max
+min:mine
+overlimit:hors-calibre
+underlimit:sous-calibre
+off:inactif
