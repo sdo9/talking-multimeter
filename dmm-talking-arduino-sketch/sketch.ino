@@ -245,7 +245,7 @@ void play(utter_t utt) {
   ADPCM_init();
   nextNibble = flash.readNextByte();
   /* first (top) nibble */
-  nextSample = ADPCM_decode(nextNibble >> 4);
+  nextSample = ((uint32_t)ADPCM_decode(nextNibble >> 4) * PWM_SCALE) >> 16;
   /* we consumed top nibble, make sure nextNibble is non zero */
   nextNibble |= 0x80;
 
@@ -273,34 +273,35 @@ void stopPlay() {
   finished_talking = millis();
 }
 
-static volatile bool inAudioISR;
+static volatile uint8_t inAudioISR;
 
 ISR(TIMER1_OVF_vect) {
   /* protect ourself against reentrancy */
-  if (inAudioISR) return;
-  inAudioISR = 1;
+  if (inAudioISR++) return;
 
-  OCR1A = ((uint32_t)nextSample * PWM_SCALE) >> 16;
+  do {
+    OCR1A = nextSample;
 
-  /* the code that follows is heavy, be nice to other ISRs */
-  sei();
+    /* the code that follows is heavy, be nice to other ISRs */
+    sei();
 
-  if (playLen && nextNibble) {
-    /* second (bottom) nibble */
-    nextSample = ADPCM_decode(nextNibble & 0x0f);
-    nextNibble = 0;
-  } else if(playLen && --playLen) {
-    nextNibble = flash.readNextByte();
-    /* first (top) nibble */
-    nextSample = ADPCM_decode(nextNibble >> 4);
-    /* we consumed top nibble, make sure nextNibble is non zero */
-    nextNibble |= 0x80;
-  } else {
-    nextSample = 32768;
-  }
+    if (playLen && nextNibble) {
+      /* second (bottom) nibble */
+      nextSample = ((uint32_t)ADPCM_decode(nextNibble & 0xf) * PWM_SCALE) >> 16;
+      nextNibble = 0;
+    } else if(playLen && --playLen) {
+      nextNibble = flash.readNextByte();
+      /* first (top) nibble */
+      nextSample = ((uint32_t)ADPCM_decode(nextNibble >> 4) * PWM_SCALE) >> 16;
+      /* we consumed top nibble, make sure nextNibble is non zero */
+      nextNibble |= 0x80;
+    } else {
+      nextSample = PWM_SCALE/2;
+    }
 
-  cli();
-  inAudioISR = 0;
+    cli();
+    /* loop back if an IRQ happened in the mean time to mitigate underruns */
+  } while (--inAudioISR);
 }
 
 void playLoop() {
