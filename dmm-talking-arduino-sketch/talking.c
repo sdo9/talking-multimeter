@@ -20,7 +20,7 @@ void appendUtterance(utter_t utt, struct utter_buffer *utterbuf) {
 
 void sayNumber(long n, struct utter_buffer *utterbuf) {
   if (n == 0) {
-    UTTER(WORD_zero);
+    UTTER(WORD_0);
     return;
   }
   if (n < 0) {
@@ -44,14 +44,10 @@ void sayNumber(long n, struct utter_buffer *utterbuf) {
     UTTER(WORD_hundred);
   }
   if (n >= 20) {
-    UTTER(WORD_twenty + n/10 - 2);
+    UTTER(WORD_20 + n/10 - 2);
     n = n % 10;
   }
-  if (n >= 10) {
-    UTTER(WORD_ten + n-10);
-    return;
-  }
   if (n) {
-    UTTER(WORD_zero + n);
+    UTTER(WORD_0 + n);
   }
 }
