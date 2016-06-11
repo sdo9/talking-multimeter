@@ -21,19 +21,25 @@ MIN_FLASH_SIZE = 512*1024
 
 def main():
   entries = []
+  aliases = 0
   for line in file('list').read().strip().split('\n'):
     if ':' in line:
       var, text = line.split(':', 1)
+      if text.startswith('alias='):
+        aliases += 1
     else:
       var = text = line
     entries += [(var, text)]
   defs = ['#define SAMPLING_RATE %d' % SAMPLING_RATE]
   cnt = 1  # #defines are 1-based to allow 0 as a terminator.
   inx = [chr(0xFE), chr(0xEE), chr(0xED)]  # magic header.
-  start_addr = 3 + (len(entries) +1)*3
+  start_addr = 3 + (len(entries) - aliases + 1)*3
   addr = start_addr
   data = ''
   for var, text in entries:
+    if text.startswith('alias='):
+      defs += ['#define WORD_%s WORD_%s' % (var, text[len('alias='):])]
+      continue
     if text.startswith('silence='):
       dur = float(text[len('silence='):])
       subprocess.call([
@@ -70,7 +76,7 @@ def main():
   inx += [chr(addr>>16)]
   inx += [chr(addr>>8 & 0xFF)]
   inx += [chr(addr &0xFF)]
-  assert cnt == len(entries) + 1
+  assert cnt + aliases == len(entries) + 1
   assert len(inx) == start_addr
   assert len(inx) + len(data) == addr
   with file('words_def.h', 'w') as f:

@@ -265,7 +265,7 @@ static uint32_t quantize(
   int8_t i;
   if (n_decimals > 0) {
     for (i=n_decimals - 1; i >= 0; i--) {
-      decimals[i] = WORD_zero + (int_base % 10);
+      decimals[i] = WORD_0 + (int_base % 10);
       int_base /= 10;
     }
     decimals[n_decimals] = NO_WORD;
