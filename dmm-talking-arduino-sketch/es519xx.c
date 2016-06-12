@@ -41,8 +41,8 @@ static long abs(long a) {
 
 struct range_spec {
   const int8_t n_decimals;
-  const utter_t scale;  // word code, f.e. WORD_milli
-  const utter_t unit;  // word code, f.e. WORD_volts
+  const utter_t scale;  // f.e. WORD_milli
+  const utter_t unit;  // f.e. WORD_volts
 };
 
 struct function_spec {
@@ -53,42 +53,53 @@ struct function_spec {
 
 static const struct function_spec functions[] = {
 #define NONE {-1, 0, 0}
-  {0b0111011, WORD_voltage,
+#define FN_VOLTAGE 0b0111011
+  {FN_VOLTAGE, WORD_voltage,
    {{4, NO_WORD, WORD_volts}, {3, NO_WORD, WORD_volts},
     {2, NO_WORD, WORD_volts}, {1, NO_WORD, WORD_volts},
     {2, WORD_milli, WORD_volts}, NONE,
     NONE, NONE}},
-  {0b0111101, WORD_current, // AUTO_UA
+#define FN_CURRENT_UA 0b0111101
+  {FN_CURRENT_UA, WORD_current, // AUTO_UA
    {{2, WORD_micro, WORD_amperes}, {1, WORD_micro, WORD_amperes},
     NONE, NONE, NONE, NONE, NONE, NONE}},
-  {0b0111111, WORD_current, // AUTO_MA
+#define FN_CURRENT_MA 0b0111111
+  {FN_CURRENT_MA, WORD_current, // AUTO_MA
    {{3, WORD_milli, WORD_amperes}, {2, WORD_milli, WORD_amperes},
     NONE, NONE, NONE, NONE, NONE, NONE}},
-  {0b0110000, WORD_current, // 22A
+#define FN_CURRENT_22A 0b0110000
+  {FN_CURRENT_22A, WORD_current, // 22A
    {{3, NO_WORD, WORD_amperes},
     NONE, NONE, NONE, NONE, NONE, NONE, NONE}},
+#if 0  // I cannnot actually trigger this function on my DMM.
   {0b0111001, WORD_current, // manual
    {{4, NO_WORD, WORD_amperes}, {3, NO_WORD, WORD_amperes},
     {2, NO_WORD, WORD_amperes}, {1, NO_WORD, WORD_amperes},
     {0, NO_WORD, WORD_amperes}, NONE,
     NONE, NONE,}},
-  {0b0110011, WORD_resistance,
+#endif
+#define FN_RESISTANCE 0b0110011
+  {FN_RESISTANCE, WORD_resistance,
    {{2, NO_WORD, WORD_ohms}, {4, WORD_kilo, WORD_ohms},
     {3, WORD_kilo, WORD_ohms}, {2, WORD_kilo, WORD_ohms},
     {4, WORD_mega, WORD_ohms}, {3, WORD_mega, WORD_ohms},
     {2, WORD_mega, WORD_ohms}, NONE}},
-  {0b0110101, WORD_continuity,
+#define FN_CONTINUITY 0b0110101
+  {FN_CONTINUITY, WORD_continuity,
    {{2, NO_WORD, WORD_ohms}, NONE,
    NONE, NONE, NONE, NONE, NONE, NONE}},
-  {0b0110001, WORD_diode,
+#define FN_DIODE 0b0110001
+  {FN_DIODE, WORD_diode,
    {{4, NO_WORD, WORD_volts},
     NONE, NONE, NONE, NONE, NONE, NONE, NONE}},
-  {0b0110010, WORD_frequency,
+#define FN_FREQUENCY 0b0110010
+  {FN_FREQUENCY, WORD_frequency,
    {{2, NO_WORD, WORD_hertz}, {1, NO_WORD, WORD_hertz},
     NONE, {3, WORD_kilo, WORD_hertz},
     {2, WORD_kilo, WORD_hertz}, {4, WORD_mega, WORD_hertz},
     {3, WORD_mega, WORD_hertz}, {2, WORD_mega, WORD_hertz}}},
-  {0b0110110, WORD_capacitance,
+#define FN_CAPACITANCE 0b0110110
+  {FN_CAPACITANCE, WORD_capacitance,
    {{3, WORD_nano, WORD_farads}, {2, WORD_nano, WORD_farads},
     {4, WORD_micro, WORD_farads}, {3, WORD_micro, WORD_farads},
     {2, WORD_micro, WORD_farads}, {4, WORD_milli, WORD_farads},
@@ -96,12 +107,26 @@ static const struct function_spec functions[] = {
 #undef NONE
 };
 
+// Fake function codes for reading.fn_code that let us distinguish the two
+// different dial positions for voltage, for which the protocol uses
+// the same function codes. They happen to be distinguishible by the
+// scale they use, which does not change (even with autorange).
+// We just pick arbitrary values with the high bit set, this happens to
+// not collide with the protocol function codes.
+#define FAKEFN_VOLTAGE_VOLTS 0x81
+#define FAKEFN_VOLTAGE_MILLIVOLTS 0x82
+// And alternative functions.
+#define FAKEFN_FREQUENCY 0x83
+#define FAKEFN_DUTY_CYCLE 0x84
+
 static const struct range_spec vahz_frequency_ranges = {
   1, NO_WORD, WORD_hertz};
 static const struct range_spec vahz_duty_cycle_range = {
   1, NO_WORD, WORD_percent};
 
-// Order of priority: if we speak one, we speak all the following ones.
+// Options, in order in which we speek them.
+// For the first few options, until LAST_INTERRUPTING_OPT, we're willing to
+// interrupt an ungoing utterance.
 #define OPT_BATT 0
 #define OPT_DC 1
 #define OPT_AC 2
@@ -118,8 +143,8 @@ static const struct range_spec vahz_duty_cycle_range = {
 #define OPT_PMAX 6
 #define OPT_PMIN 7
 #define OPT_OL 8
-// All these I can't elicit on my meter.
 #define OPT_UL 9
+// All these I can't elicit on my meter.
 #define OPT_MAX 10
 #define OPT_MIN 11
 //Also RMR VBAR LPF.
@@ -141,6 +166,7 @@ static const utter_t _option_utterances[] = {
 };
 
 struct reading_s {
+  uint8_t fn_code;  // function_spec func_code or one of the FAKEFN_* values.
   utter_t func_name;
   bool opts[N_OPTS];
   utter_t scale;
@@ -199,9 +225,11 @@ static int8_t parse(
       && !reading->opts[OPT_AUTORANGE]) {
     dbg("missing expected is_auto for func_code 0x%02x", func_code);
   }
+#if 0  // This function does not seem to be used by my DMM.
   if (func_code == 0b0111001 && reading->opts[OPT_AUTORANGE]) {
     dbg("Unexpected is_auto for manual current");
   }
+#endif
   if (reading->opts[OPT_AC] && reading->opts[OPT_DC]) {
     dbg("Both ac and dc asserted");
   }
@@ -209,11 +237,15 @@ static int8_t parse(
   const struct range_spec *range;
   if (is_vahz && !is_judge) {
     reading->func_name = WORD_frequency;
+    reading->fn_code = FAKEFN_FREQUENCY;
     range = &vahz_frequency_ranges;
   } else if ((is_vahz || func_code == 0b0110010) && is_judge) {
     reading->func_name = WORD_duty_cycle;
+    reading->fn_code = FAKEFN_DUTY_CYCLE;
     range = &vahz_duty_cycle_range;
   } else {
+    reading->fn_code = 0;  // unset yet.
+
     int8_t range_idx = buf[0] - '0';
     if (range_idx < 0 || range_idx > 7) {
       dbg("Invalid range index byte: 0x%02x", buf[0]);
@@ -228,6 +260,12 @@ static int8_t parse(
   reading->n_decimals = range->n_decimals;
   reading->scale = range->scale;
   reading->unit = range->unit;
+  if (reading->fn_code == 0) {
+    if (func_code == FN_VOLTAGE) {
+      reading->fn_code = reading->scale == WORD_milli ?
+        FAKEFN_VOLTAGE_MILLIVOLTS : FAKEFN_VOLTAGE_VOLTS;
+    } else reading->fn_code = func_code;
+  }
 
   if (reading->opts[OPT_UL] || reading->opts[OPT_OL]) {
     reading->int_value = 0;
@@ -324,7 +362,7 @@ int8_t handle_packet(
   }
 
   bool spoke = 0, spoke_unit = 0;
-  if (reading.func_name != last_reading.func_name) {
+  if (reading.fn_code != last_reading.fn_code) {
     // Interrupt ourselves if we switched to a different function.
     UTTER(reading.func_name);
     spoke = 1;
@@ -341,42 +379,69 @@ int8_t handle_packet(
     return 0;
   uint8_t o;
   for (o=0; o<N_OPTS; o++) {
-    if (spoke
-        || reading.opts[o] != last_reading.opts[o]
-        || (o == OPT_OL && reading.opts[o] && now_millis - last_spoke > OVER_LIMIT_REPEAT_INTERVAL_MS)
-        // pmin/max is special, keep announcing it.
-        || (o == OPT_PMAX && reading.opts[o])
-        || (o == OPT_PMIN && reading.opts[o])) {
-      if (!spoke && o > LAST_INTERRUPTING_OPT && already_talking)
-        continue;  // Don't interrupt.
-      // For many options, being off means we just don't mention them. For
-      // some, we do want to know when they toggle off.
-      if (!reading.opts[o]) {
-        switch (o) {
-        case OPT_AUTORANGE:
-        case OPT_HOLD:
-        case OPT_REL:
-          if (reading.opts[o] != last_reading.opts[o])
-            break;
-        default:
-          continue;
-        };
+    if (!spoke && o > LAST_INTERRUPTING_OPT && already_talking)
+      return 0;  // finish what we were saying, don't interrupt.
+    // Reasons not to speak.
+    switch (o) {
+    case OPT_AUTORANGE:
+      if (!reading.opts[o]
+          && (reading.fn_code == FAKEFN_VOLTAGE_MILLIVOLTS
+              || reading.fn_code == FN_CURRENT_22A
+              || reading.fn_code == FN_CONTINUITY
+              || reading.fn_code == FN_DIODE
+              || reading.fn_code == FAKEFN_DUTY_CYCLE)) {
+        // Automatically turns off for these functions, presumably because
+        // there's a single range available. Too verbose, don't announce.
+        continue;
       }
+      // Otherwise, turning off is notable. Reactivation coinciding
+      // with a function change should be ignored.
+      if (reading.opts[o] && reading.fn_code != last_reading.fn_code)
+        continue;
+      break;
+    };
+    // For many options, being off means we just don't mention them.
+    if (!reading.opts[o]) {
+      switch (o) {
+      // For these we do want to know when they toggle off.
+      case OPT_AUTORANGE:
+      case OPT_HOLD:
+      case OPT_REL:
+        break;
+      default:
+        // Skip over any option that is off.
+        continue;
+      };
+    }
+    // Generally we speak an option if it changed, but also for these
+    // special cases.
+    bool do_speak = 0;  // Speak even if option did not change.
+    switch (o) {
+    case OPT_DC:
+    case OPT_AC:
+      // Reannounce on function change.
+      if (reading.fn_code != last_reading.fn_code)
+        do_speak = 1;
+      break;
+    case OPT_OL:
+    case OPT_UL:
+      // If we've been OL/UL for long enough, repeat it.
+      if (now_millis - last_spoke > OVER_LIMIT_REPEAT_INTERVAL_MS)
+        do_speak = 1;
+      break;
+    // pmin/max is special, keep announcing it.
+    case OPT_PMAX:
+    case OPT_PMIN:
+      spoke = 1;
+      break;
+    };
+    if (reading.opts[o] != last_reading.opts[o] || do_speak) {
       spoke = 1;
       UTTER(_option_utterances[o]);
       if (!reading.opts[o]){
         UTTER(WORD_off);
       }
     }
-  }
-  if (!spoke && already_talking) {
-    // Some dial positions do not change function code but change only scale.
-    if ((reading.func_name == WORD_voltage || reading.func_name == WORD_current)
-        && reading.scale != last_reading.scale)
-      // AFAICT scale only changes by user intervention in those positions.
-      // For these we want to interrupt ourselves.
-      ;
-    else return 0;  // finish what we were saying.
   }
   if (reading.scale != last_reading.scale
       || reading.unit != last_reading.unit
