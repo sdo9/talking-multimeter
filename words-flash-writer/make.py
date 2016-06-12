@@ -13,16 +13,26 @@
 # data. Relies on the espeak text-to-speech engine and the sox audio
 # processing tool.
 
+import argparse
 import os
 import subprocess
 
-SAMPLING_RATE = 18000  # Reduce if we run out of space.
+SAMPLING_RATE = 18000
 MIN_FLASH_SIZE = 512*1024
+
+parser = argparse.ArgumentParser(description='Synthesize voice data.')
+parser.add_argument(
+  '--lang', dest='lang', metavar='LANGUAGE', type=str, default='en',
+  help='language of word list to use, from file list-<LANGUAGE>.')
+parser.add_argument(
+  '--voice', dest='voice', metavar='VOICE', type=str, default='en',
+  help='voice for the espeak --voice option')
+args = parser.parse_args()
 
 def main():
   entries = []
   aliases = 0
-  for line in file('list').read().strip().split('\n'):
+  for line in file('list-' + args.lang).read().strip().split('\n'):
     if ':' in line:
       var, text = line.split(':', 1)
       if text.startswith('alias='):
@@ -49,6 +59,7 @@ def main():
         'espeak',
         '-a', '200',
         '-s', '250',
+        '-v', args.voice,
         '-z',
         '-w', 'out.wav',
         text])

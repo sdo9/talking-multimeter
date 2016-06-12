@@ -1,3 +1,9 @@
+# Language for word list selection and espeak voice to use.
+LANG=en
+VOICE=en
+#LANG=fr
+#VOICE=fr
+
 all: writer dmm
 
 build/words-flash-writer build/dmm-talking-arduino-sketch:
@@ -48,8 +54,8 @@ dmm_deps := \
 
 build/words-flash-writer/snd.data \
 build/words-flash-writer/words_def.h \
- : build/words-flash-writer/make.py build/words-flash-writer/list
-	cd build/words-flash-writer && ./make.py
+ : build/words-flash-writer/make.py build/words-flash-writer/list-$(LANG)
+	cd build/words-flash-writer && ./make.py --lang="$(LANG)" --voice="$(VOICE)"
 
 writer: $(writer_deps)
 	cd build/words-flash-writer && \
