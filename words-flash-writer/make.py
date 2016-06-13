@@ -53,7 +53,7 @@ def main():
     if text.startswith('silence='):
       dur = float(text[len('silence='):])
       subprocess.call([
-        'sox', '-n', 'out.wav', 'synth', str(dur), 'sin', '0'])
+        'sox', '-r', str(SAMPLING_RATE), '-n', 'out.wav', 'synth', str(dur), 'sin', '0'])
     else:
       subprocess.call([
         'espeak',
