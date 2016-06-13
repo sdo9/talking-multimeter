@@ -75,6 +75,9 @@ Reverse biased...
 VCC to IR diode cathode,
 100Kohm resistor from IR diode anode to GND,
 IR diode anode to mcu pin 4 (arduino 2).
+Note: I picked pin 2 for the IR diode and pin 8 for the button, so the
+IR diode ends up serviced by PCINT2_vect, and the button is serviced by
+PCINT0_vect.
 
 Flash:
 VCC to flash pin 8,
