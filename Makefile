@@ -1,11 +1,11 @@
 # Language for word list selection.
-# Can be overriden on the command line e.g. "make LANGUAGE=fr ..."
-LANGUAGE ?= en
-#LANGUAGE ?= fr
+# Can be overridden on the command line e.g. "make WORD_LIST_LANGUAGE=fr ..."
+WORD_LIST_LANGUAGE := en
+#WORD_LIST_LANGUAGE := fr
 
 # eSpeak voice to use.
 # Can be overriden on the command line e.g. "make VOICE=en-us ..."
-VOICE ?= $(LANGUAGE)
+VOICE ?= $(WORD_LIST_LANGUAGE)
 
 all: writer dmm
 
@@ -57,8 +57,8 @@ dmm_deps := \
 
 build/words-flash-writer/snd.data \
 build/words-flash-writer/words_def.h \
- : build/words-flash-writer/make.py build/words-flash-writer/list-$(LANGUAGE)
-	cd build/words-flash-writer && ./make.py --lang="$(LANGUAGE)" --voice="$(VOICE)"
+ : build/words-flash-writer/make.py build/words-flash-writer/list-$(WORD_LIST_LANGUAGE)
+	cd build/words-flash-writer && ./make.py --lang="$(WORD_LIST_LANGUAGE)" --voice="$(VOICE)"
 
 writer: $(writer_deps)
 	cd build/words-flash-writer && \
