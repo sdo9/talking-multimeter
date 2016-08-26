@@ -9,11 +9,12 @@ the Free Software Foundation; either version 2 of the License, or
 
 Thanks to Nicolas Pitre <nico@fluxnic.net> for contributions.
 
-I made a talking module for a UT61E multimeter. These multimeters have
+I made a talking module for a UT61E digital multimeter. These multimeters have
 an IR output meant for logging to a computer; instead I made a module
 that speaks out the multimeter's setting and measurements, so it can
 be used by a blind person.
 
+This runs as an arduino sketch on a bare ATMEGA328P microcontroller.
 The serial signal is received from the multimeter through an IR diode.
 The Cyrustek ES519XX protocol is then decoded. Speech is produced by
 playing back pre-generated sound clips, read from an SPI flash chip (one
@@ -50,7 +51,7 @@ it where I need it.
 Contents
 ========
 
-This directory contains:
+This repository contains:
 
 circuit-spec.txt: detailed explanation of the circuit used.
 
@@ -61,8 +62,8 @@ words-flash-writer/ : program to generate sound data, Arduino sketch and
 python client utility to upload sound data to the flash chip through
 the ATMEGA.
 
-patches/ : modifications to existing software that I made and that this
-project relies on.
+patches/ : modifications to existing software that that this project
+relies on.
 
 dmm-talking-arduino-sketch: arduino code for the talking module.
 
@@ -80,6 +81,14 @@ examples found on the net (one for AtTiny85 as I recall) but I've lost
 the references.
 
 Thanks to Adafruit for the code to access the flash chip.
+
+Thanks to Nicolas Pitre <nico@fluxnic.net> for major contributions:
+-Completely rewritten software serial receive function with no busy waiting
+ in the ISR.
+-Improved sound playback.
+-ADPCM speech compression.
+-Makefile
+-French language support.
 
 Software Dependencies
 =====================
@@ -105,6 +114,7 @@ should come as a dependency of the Arduino tools.
 Personally, I absolutely want a command-line interface to my development
 tools. I used to use "ino", now continued as Arturo (command called "ano"):
 https://github.com/scottdarch/Arturo
+The Makefile assumes this is installed.
 I recommend installing the picocom package which its "serial" function uses.
 The board model and cpu setting you want when using ano with a bare
 ATMEGA328P at 8MHz is: -m pro --cpu 8MHzatmega328.
@@ -212,8 +222,8 @@ specified at the top of the Makefile. Those list files contain:
 - One word per line.
 - The first field is the key as used in the code.
 - Optionally, it may be followed by a colon and the text to feed
-  to the text-to-speech engine.
-- If not specified then the same text as the key is used.
+  to the text-to-speech engine. If not specified then the same text as
+  the key is used.
 - Two special values are also recognized:
   - silence=<duration> for a silence of given duration.
   - alias=<key> to produce another key with the same audio content
@@ -249,4 +259,3 @@ pronounced to cope with different language peculiarities:
    therefore this is defined as an alias of "hundred".
 8) The mandatory "thousand" and optional "1000" keys follow the same
    rules as #6 and #7 respectively.
-
