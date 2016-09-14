@@ -36,7 +36,7 @@ data += '\0' * -(len(data)%-256)
 print 'padded to length: %d' % len(data)
 assert len(data) % 256 == 0
 
-s.setTimeout(1.5)
+s.timeout = 1.5
 line = s.readline().strip()
 while line:
   print line
@@ -57,7 +57,7 @@ if len(data) > capacity:
   raise ValueError('data too long')
 
 print 'Erasing'
-s.setTimeout(6.0)
+s.timeout = 10.0
 s.write('ERASE')
 line = s.readline().strip()
 print '>>>', line
