@@ -128,13 +128,15 @@ programmer to do this. I used Adafruit's USBtinyISP.
 -   Set brown out detector (BOD) to 1.8V.
 
     avrdude -c usbtiny -p atmega328p \
-      -U lfuse:w:0xe2:m -U hfuse:w:0xDA:m -U efuse:w:06:m
+      -U lfuse:w:0xe2:m -U hfuse:w:0xDA:m -U efuse:w:0xFE:m
+
+(We want *efuse* = 6 but it sometimes insists on having the high bits set.)
 
 I find it convenient for development to install a bootloader, that way
 I can upload a new sketch from the FTDI header I incorporated into my
 circuit.
 
-    cd /usr/share/arduino/hardware/arduino/bootloaders
+    cd /usr/share/arduino/hardware/arduino/avr/bootloaders/
     avrdude -c usbtiny -p atmega328p \
       -U flash:w:./atmega/ATmegaBOOT_168_atmega328_pro_8MHz.hex:i
 
